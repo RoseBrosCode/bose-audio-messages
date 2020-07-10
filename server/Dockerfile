@@ -1,29 +1,30 @@
-FROM python:3.8
+FROM python:3.8-slim-buster
 
-RUN pip install pipenv
+# Setup gunicorn env vars
+ENV GUNICORN_DIRECTORY=/gunicorn \
+    GUNICORN_WORKERS=3 \
+    GUNICORN_WORKER_CLASS=gevent \
+    GUNICORN_BACKLOG=2048 \
+    GUNICORN_BIND=0.0.0.0:80 \
+    APP_MODULE=main:app \
+    APP_DIRECTORY=/server
 
-# Configure environment variables
-ENV FLASK_APP=server.py
+# Setup gunicorn config
+WORKDIR ${GUNICORN_DIRECTORY}
+COPY gunicorn .
 
-# ENV PYTHONPATH=$PYTHONPATH:/
-# ENV APP_MODULE=service.main:APP
-# ENV GUNICORN_WORKERS=4
-# ENV GUNICORN_BIND=0.0.0.0:9090
-# ENV GUNICORN_WORKER_CLASS=gevent
+# Setup application
+WORKDIR ${APP_DIRECTORY}
 
 # Install dependencies
-WORKDIR /server
+RUN pip install pipenv
 COPY server/Pipfile* ./
-
-# RUN apk add --no-cache ${PYTHON_BUILD_PACKAGES} \
-#     && pipenv install --system --deploy\
-#     && apk del ${PYTHON_BUILD_PACKAGES} \
-#     && rm -rf /var/cache/apk/*
-
 RUN pipenv install --system --deploy
 
-# Copy remaining data
+# Copy remaining source
 COPY server .
 COPY client ./client
 
-CMD [ "flask", "run", "--host=0.0.0.0"]
+# Run the server
+CMD gunicorn --config ${GUNICORN_DIRECTORY}/gunicorn.conf.py --log-config ${GUNICORN_DIRECTORY}/logging.conf \
+    --chdir ${APP_DIRECTORY} ${APP_MODULE}
