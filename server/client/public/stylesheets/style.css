@@ -1,0 +1,21 @@
+body {
+  font-family: 'Gotham 4r';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: #00B7FF;
+}
+
+.center {
+  text-align: center;
+}
+
+input {
+  -webkit-touch-callout: none !important; 
+}
+
+input:focus {
+  outline: none;
+}

@@ -23,7 +23,6 @@ RUN pipenv install --system --deploy
 
 # Copy remaining source
 COPY server .
-COPY client ./client
 
 # Run the server
 CMD gunicorn --config ${GUNICORN_DIRECTORY}/gunicorn.conf.py --log-config ${GUNICORN_DIRECTORY}/logging.conf \
