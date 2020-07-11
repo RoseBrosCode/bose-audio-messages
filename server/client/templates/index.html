@@ -20,16 +20,19 @@
       <h2 style="font-family: 'Gotham 7r';">Audio Messages</h2>
     </div>
     <div class="row justify-content-center">
-      <p>Press a product to record, release to send.</p>
+      <p>Tap and hold a product to record, release to send.</p>
     </div>
     <div class="row justify-content-center">
       <div id="buttons">
         {% for product in products %}
         <div class="row justify-content-center pb-4">
           <input type="image" id="{{ product.product_id }}" value="{{ product.product_name }}"
-            src="{{ url_for('static', filename=product.image_name + '.png') }}"
+            src="{{ url_for('static', filename='images/' + product.image_name + '.png') }}"
             imageName="{{ product.image_name }}"
             height="220px" width="220px">
+        </div>
+        <div class="row justify-content-center pb-4">
+          <span style="font-family: 'Gotham 7r';">{{ product.product_name }}</span>
         </div>
         {% endfor %}
       </div>
@@ -53,7 +56,7 @@
 
   <!-- set root of server to JS variable -->
   <script type=text/javascript>
-    window.serverRoot = "{{ url_for('bam') }}";
+    window.serverRoot = "{{ url_for('home_login') }}";
     window.staticFilepath = "{{ url_for('static', filename='') }}";
   </script>
 

@@ -92,7 +92,7 @@ function onRecordingReady(e) {
                     console.log("product to sent to: ", activeProduct.id);
 
                     // TODO: poopulate with backend URL for sending AN
-                    var playUrl = window.serverRoot + "";
+                    var playUrl = window.serverRoot + "send";
 
                     var message = {
                         "origin": "BAM Web App",

@@ -9,3 +9,7 @@ services:
     ports: ["8000:80"]
     environment: 
       - GUNICORN_reload=True
+      - SB_CLIENT_ID=${SB_CLIENT_ID}
+      - SB_SECRET=${SB_SECRET}
+      - SB_API_VERSION=${SB_API_VERSION}
+      - SESSION_KEY=${SESSION_KEY}
