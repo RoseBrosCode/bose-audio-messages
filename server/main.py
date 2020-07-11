@@ -68,7 +68,7 @@ def auth_redirect():
     # get Switchboard tokens and put in session
     t_auth_header = 'Basic ' + b64encode_str(os.environ['SB_CLIENT_ID'] + ':' + os.environ['SB_SECRET'])
     t_headers = {'Authorization':t_auth_header}
-    t_data = {'grant_type':'authorization_code', 'code':request.args['code'], 'redirect_uri':'http://localhost:5000/auth'}
+    t_data = {'grant_type':'authorization_code', 'code':request.args['code'], 'redirect_uri':'http://localhost:8000/auth'}
     tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=t_headers, data=t_data)
     session['access_token'] = tokens.json()['access_token']
     session['refresh_token'] = tokens.json()['refresh_token']
@@ -78,36 +78,40 @@ def auth_redirect():
 
 @app.route('/app')
 def app_home():
-    
-    products_res = get_products(session['access_token'])
-    if products_res.status_code == 403:
-        if session['refresh_token'] is None:
-            return redirect(url_for('home_login'))
-        else:
-            session['access_token'] = refresh_sb_token()
-            products_res = get_products(session['access_token'])
+    if 'access_token' in session:
+        products_res = get_products(session['access_token'])
+        if products_res.status_code == 403:
+            if 'refresh_token' in session:
+                session['access_token'] = refresh_sb_token()
+                products_res = get_products(session['access_token'])
 
-    products_array = products_res.json()['results']
+            else:
+                return redirect(url_for('home_login'))
+                
+        products_array = products_res.json()['results']
 
-    # image_name_map = {
-    #     'Bose Home Speaker 300': 'flipper',
-    #     'Bose Home Speaker 450': 'eddie-club',
-    #     'Bose Home Speaker 500': 'eddie',
-    #     'Bose Soundbar 500': 'professor',
-    #     'Bose Soundbar 700': 'g-c',
-    #     'Bose Portable Home Speaker': 'taylor'
-    # }
+        # image_name_map = {
+        #     'Bose Home Speaker 300': 'flipper',
+        #     'Bose Home Speaker 450': 'eddie-club',
+        #     'Bose Home Speaker 500': 'eddie',
+        #     'Bose Soundbar 500': 'professor',
+        #     'Bose Soundbar 700': 'g-c',
+        #     'Bose Portable Home Speaker': 'taylor'
+        # }
 
-    client_products = []
-    for p in products_array:
-        client_products.append({
-            'product_id': p['productID'],
-            'product_name': p['productName'],
-            'image_name': 'eddie-black' # placeholder for now, when all images are live replace with image_name_map.get(p['productType'], 'default') and uncomment image_name_map
-        })
+        client_products = []
+        for p in products_array:
+            client_products.append({
+                'product_id': p['productID'],
+                'product_name': p['productName'],
+                'image_name': 'eddie-black' # placeholder for now, when all images are live replace with image_name_map.get(p['productType'], 'default') and uncomment image_name_map
+            })
 
-    # List the products
-    return render_template('index.html', products=client_products)
+        # List the products
+        return render_template('index.html', products=client_products)
+                
+    else:
+        return redirect(url_for('home_login'))
 
 @app.route('/send')
 def play_msg():
