@@ -96,16 +96,18 @@ function onRecordingReady(e) {
 
                     var message = {
                         "origin": "BAM Web App",
-                        "key": filename
+                        "key": filename,
+                        "target_product": activeProduct.id,
+                        "url": data.Location
                     }
                     console.log(message);
                     fetch(playUrl, {
                         method: 'POST', // *GET, POST, PUT, DELETE, etc.
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(message)
+                        body: JSON.stringify(message),
+                        headers: new Headers({
+                            'content-type': 'application/json'
+                        })
+                        
                     }).then(() => {
                         $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + "-sent.png";
 

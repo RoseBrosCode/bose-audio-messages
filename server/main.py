@@ -4,7 +4,7 @@ import requests
 from flask import Flask, render_template, redirect, render_template, request, session, url_for
 from logging.config import dictConfig
 
-from switchboard import get_products, refresh_sb_token
+from switchboard import get_products, refresh_sb_token, send_audio_notification
 from util import b64encode_str
 
 
@@ -96,8 +96,21 @@ def app_home():
 
 @app.route('/send', methods=['POST'])
 def play_msg():
+    requested_msg = request.get_json()
+    app.logger.debug(requested_msg)
+    if 'access_token' in session:
+        an_res = send_audio_notification(session['access_token'], requested_msg['target_product'], requested_msg['url'])
+        if an_res.status_code == 403:
+            if 'refresh_token' in session:
+                session['access_token'] = refresh_sb_token()
+                an_res = get_products(session['access_token'])
+            else:
+                return redirect(url_for('home_login'))
+                
+        app.logger.debug(an_res.json())
 
-    app.logger.info('Client Message Request Body: ')
-    app.logger.info(request.data)
-
-    return ('', 204)
+        # tell the browser all was fine
+        return ('', 204)
+                
+    else:
+        return redirect(url_for('home_login'))
