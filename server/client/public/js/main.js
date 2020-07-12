@@ -107,10 +107,10 @@ function onRecordingReady(e) {
                         },
                         body: JSON.stringify(message)
                     }).then(() => {
-                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct.target).attr("imageName") + "-sent.png";
+                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + "-sent.png";
 
                         setTimeout(() => {
-                            $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct.target).attr("imageName") + ".png";
+                            $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + ".png";
                         }, 5000);
                     });
                     

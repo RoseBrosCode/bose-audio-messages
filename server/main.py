@@ -1,10 +1,22 @@
 import os
-from base64 import b64encode, b64decode
-from flask import Flask, render_template, redirect, render_template, request, session, url_for
 import jinja2
-from logging.config import dictConfig
 import requests
+from flask import Flask, render_template, redirect, render_template, request, session, url_for
+from logging.config import dictConfig
 
+from switchboard import get_products, refresh_sb_token
+from util import b64encode_str
+
+
+# Create flask app
+app = Flask(__name__, static_folder="client/public")
+app.secret_key = os.environ['SESSION_KEY']
+
+# Set templates dir
+app.jinja_loader = jinja2.ChoiceLoader(
+    [app.jinja_loader, jinja2.FileSystemLoader("client/templates")])
+
+# Configure logging
 dictConfig({
     'version': 1,
     'formatters': {'default': {
@@ -16,58 +28,27 @@ dictConfig({
         'formatter': 'default'
     }},
     'root': {
-        'level': 'INFO',
+        'level': os.environ.get("LOG_LEVEL", "INFO"),
         'handlers': ['wsgi']
     }
 })
 
-def b64encode_str(s: str) -> str:
-    """ Encodes a string to base64 and returns the encoded value as a string. """
-    return b64encode(s.encode("utf-8")).decode("utf-8")
-
-def refresh_sb_token():
-    """ Refreshes Switchboard Access Token """
-    if session['refresh_token'] is None:
-        return None
-    else:
-        t_auth_header = 'Basic ' + b64encode_str(os.environ['SB_CLIENT_ID'] + ':' + os.environ['SB_SECRET'])
-        t_headers = {'Authorization':t_auth_header}
-        t_data = {'grant_type':'refresh_token', 'refresh_token':session['refresh_token']}
-        tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=t_headers, data=t_data)
-        return tokens.json()['access_token']
-
-
-def get_products(acc_token):
-    """ Returns JSON Object Switchboard GET /products response """
-    sb_headers = {
-        'Authorization': 'Bearer ' + acc_token,
-        'X-API-Version': os.environ['SB_API_VERSION'],
-        'X-ApiKey': os.environ['SB_CLIENT_ID']
-    }
-
-    products_res = requests.get('https://partners.api.bose.io/products', headers=sb_headers)
-
-    return products_res
-
-# Create flask app
-app = Flask(__name__, static_folder="client/public")
-app.secret_key = os.environ['SESSION_KEY']
-
-# Set templates dir
-app.jinja_loader = jinja2.ChoiceLoader(
-    [app.jinja_loader, jinja2.FileSystemLoader("client/templates")])
-
 @app.route('/')
 def home_login():
+    if 'refresh_token' in session:
+        return redirect(url_for('app_home'))
+
+    client_id = os.environ['SB_CLIENT_ID']
+    redirect_url = os.environ['SB_REDIRECT_URL']
 
     # First time? Get the login button
-    return render_template('home.html')
+    return render_template('home.html', client_id=client_id, redirect_url=redirect_url)
 
 @app.route('/auth')
 def auth_redirect():
     # get Switchboard tokens and put in session
     t_auth_header = 'Basic ' + b64encode_str(os.environ['SB_CLIENT_ID'] + ':' + os.environ['SB_SECRET'])
-    t_headers = {'Authorization':t_auth_header}
+    t_headers = {'Authorization': t_auth_header}
     t_data = {'grant_type':'authorization_code', 'code':request.args['code'], 'redirect_uri':'http://localhost:8000/auth'}
     tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=t_headers, data=t_data)
     session['access_token'] = tokens.json()['access_token']
@@ -84,11 +65,11 @@ def app_home():
             if 'refresh_token' in session:
                 session['access_token'] = refresh_sb_token()
                 products_res = get_products(session['access_token'])
-
             else:
                 return redirect(url_for('home_login'))
                 
         products_array = products_res.json()['results']
+        app.logger.debug(f"products: {products_array}")
 
         # image_name_map = {
         #     'Bose Home Speaker 300': 'flipper',
@@ -113,7 +94,7 @@ def app_home():
     else:
         return redirect(url_for('home_login'))
 
-@app.route('/send')
+@app.route('/send', methods=['POST'])
 def play_msg():
 
     app.logger.info('Client Message Request Body: ')
