@@ -49,7 +49,7 @@ def auth_redirect():
     # get Switchboard tokens and put in session
     t_auth_header = 'Basic ' + b64encode_str(os.environ['SB_CLIENT_ID'] + ':' + os.environ['SB_SECRET'])
     t_headers = {'Authorization': t_auth_header}
-    t_data = {'grant_type':'authorization_code', 'code':request.args['code'], 'redirect_uri':'http://localhost:8000/auth'}
+    t_data = {'grant_type':'authorization_code', 'code':request.args['code'], 'redirect_uri':os.environ['SB_REDIRECT_URL']}
     tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=t_headers, data=t_data)
     session['access_token'] = tokens.json()['access_token']
     session['refresh_token'] = tokens.json()['refresh_token']
