@@ -6,11 +6,11 @@ var recorder;
 var filename;
 var activeProduct;
 var awsCreds = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: 'us-east-1:73bbe336-2fb5-4aa4-97a4-87c2e52e679c'
+    IdentityPoolId: 'us-east-2:3d2538af-9a51-40f1-a1e0-58263df824bd'
 });
 var awsConfig = new AWS.Config({
     credentials: awsCreds,
-    region: 'us-east-1'
+    region: 'us-east-2'
 });
 AWS.config.update(awsConfig);
 
@@ -79,7 +79,7 @@ function onRecordingReady(e) {
             filename = "bam_msg_" + uuid + ".wav";
             var upload = new AWS.S3.ManagedUpload({
                 params: {
-                    Bucket: "bose-audio-messages",
+                    Bucket: "bose-audio-messages-demo",
                     Key: filename,
                     Body: convertedWavBlob,
                     ACL: "public-read"
@@ -91,7 +91,6 @@ function onRecordingReady(e) {
                     console.log("upload success! URL: ", data.Location);
                     console.log("product to sent to: ", activeProduct.id);
 
-                    // TODO: poopulate with backend URL for sending AN
                     var playUrl = window.serverRoot + "send";
 
                     var message = {
