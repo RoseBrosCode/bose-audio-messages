@@ -23,17 +23,20 @@ buttons.addEventListener("touchend", notPressingDown, false);
 document.oncontextmenu = function () { return false; };
 
 window.onload = function () {
-    // get audio stream from user's mic
-    navigator.mediaDevices.getUserMedia({
-        audio: true
-    })
-        .then(function (stream) {
-            recorder = new MediaRecorder(stream);
+    // Construct recorder
+    recorder = new MicRecorder({
+        bitRate: 128
+    });
 
-            // listen to dataavailable, which gets triggered whenever we have
-            // an audio blob available
-            recorder.addEventListener('dataavailable', onRecordingReady);
-        });
+    // Attempt a recording to prompt user to allow audio
+    recorder.start().then(() => {
+        // User allowed audio, stop recording
+        recorder.stop();
+    }).catch((e) => {
+        // Unable to record audio
+        // TODO: prompt user somehow
+        console.error(e);
+    });
 };
 
 function preventMenu(e) {
@@ -56,170 +59,60 @@ function notPressingDown(e) {
     activeProduct = e.target;
     e.target.src = window.staticFilepath + "/images/" + $(e.target).attr("imageName") + "-sending.png";
 
-    // the timeout below is a hack that will need some love
-    setTimeout(function () {
-        console.log("Stopping!")
-        recorder.stop();
-    }, 1000);
-}
-
-function onRecordingReady(e) {
-    // e.data contains a blob representing the recording
-    var reader = new FileReader();
-    var audioCtx = new AudioContext();
-
-    reader.onloadend = function (e) {
-        audioCtx.decodeAudioData(reader.result).then(function (decodedData) {
-            var convertedWav = audioBufferToWav(decodedData);
-            var convertedWavBlob = new Blob([convertedWav]);
-
-            // upload to S3
-            var uuid = generateUUID();
-            // bam_msg_ prefixed objects are cleaned up after 1 day
-            filename = "bam_msg_" + uuid + ".wav";
-            var upload = new AWS.S3.ManagedUpload({
-                params: {
-                    Bucket: "bose-audio-messages-demo",
-                    Key: filename,
-                    Body: convertedWavBlob,
-                    ACL: "public-read"
-                }
-            });
-
-            upload.promise().then(
-                function (data) {
-                    console.log("upload success! URL: ", data.Location);
-                    console.log("product to sent to: ", activeProduct.id);
-
-                    var playUrl = window.serverRoot + "send";
-
-                    var message = {
-                        "origin": "BAM Web App",
-                        "key": filename,
-                        "target_product": activeProduct.id,
-                        "url": data.Location
-                    }
-                    console.log(message);
-                    fetch(playUrl, {
-                        method: 'POST', // *GET, POST, PUT, DELETE, etc.
-                        body: JSON.stringify(message),
-                        headers: new Headers({
-                            'content-type': 'application/json'
-                        })
-                        
-                    }).then(() => {
-                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + "-sent.png";
-
-                        setTimeout(() => {
-                            $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + ".png";
-                        }, 5000);
-                    });
-                    
-                },
-                function (err) {
-                    console.log("There was an error uploading the mesage: ", err.message);
-                }
-            );
+    // Stop recording
+    recorder.stop().getMp3().then(function([buffer, blob]){
+        // Upload to S3
+        var uuid = generateUUID();
+        // bam_msg_ prefixed objects are cleaned up after 1 day
+        filename = "bam_msg_" + uuid + ".mp3";
+        var upload = new AWS.S3.ManagedUpload({
+            params: {
+                Bucket: "bose-audio-messages-demo",
+                Key: filename,
+                Body: blob,
+                ACL: "public-read"
+            }
         });
-    };
 
-    reader.readAsArrayBuffer(e.data);
+        upload.promise().then(
+            function (data) {
+                console.log("upload success! URL: ", data.Location);
+                console.log("product to sent to: ", activeProduct.id);
 
-}
+                var playUrl = window.serverRoot + "send";
 
-// https://github.com/Jam3/audiobuffer-to-wav/blob/master/index.js
-function audioBufferToWav(buffer, opt) {
-    opt = opt || {}
+                var message = {
+                    "origin": "BAM Web App",
+                    "key": filename,
+                    "target_product": activeProduct.id,
+                    "url": data.Location
+                }
+                console.log(message);
+                fetch(playUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(message),
+                    headers: new Headers({
+                        'content-type': 'application/json'
+                    })
 
-    var numChannels = buffer.numberOfChannels
-    var sampleRate = buffer.sampleRate
-    var format = opt.float32 ? 3 : 1
-    var bitDepth = format === 3 ? 32 : 16
+                }).then(() => {
+                    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + "-sent.png";
 
-    var result
-    if (numChannels === 2) {
-        result = interleave(buffer.getChannelData(0), buffer.getChannelData(1))
-    } else {
-        result = buffer.getChannelData(0)
-    }
+                    setTimeout(() => {
+                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + ".png";
+                    }, 5000);
+                });
 
-    return encodeWAV(result, format, sampleRate, numChannels, bitDepth)
-}
-
-function encodeWAV(samples, format, sampleRate, numChannels, bitDepth) {
-    var bytesPerSample = bitDepth / 8
-    var blockAlign = numChannels * bytesPerSample
-
-    var buffer = new ArrayBuffer(44 + samples.length * bytesPerSample)
-    var view = new DataView(buffer)
-
-    /* RIFF identifier */
-    writeString(view, 0, 'RIFF')
-    /* RIFF chunk length */
-    view.setUint32(4, 36 + samples.length * bytesPerSample, true)
-    /* RIFF type */
-    writeString(view, 8, 'WAVE')
-    /* format chunk identifier */
-    writeString(view, 12, 'fmt ')
-    /* format chunk length */
-    view.setUint32(16, 16, true)
-    /* sample format (raw) */
-    view.setUint16(20, format, true)
-    /* channel count */
-    view.setUint16(22, numChannels, true)
-    /* sample rate */
-    view.setUint32(24, sampleRate, true)
-    /* byte rate (sample rate * block align) */
-    view.setUint32(28, sampleRate * blockAlign, true)
-    /* block align (channel count * bytes per sample) */
-    view.setUint16(32, blockAlign, true)
-    /* bits per sample */
-    view.setUint16(34, bitDepth, true)
-    /* data chunk identifier */
-    writeString(view, 36, 'data')
-    /* data chunk length */
-    view.setUint32(40, samples.length * bytesPerSample, true)
-    if (format === 1) { // Raw PCM
-        floatTo16BitPCM(view, 44, samples)
-    } else {
-        writeFloat32(view, 44, samples)
-    }
-
-    return buffer
-}
-
-function interleave(inputL, inputR) {
-    var length = inputL.length + inputR.length
-    var result = new Float32Array(length)
-
-    var index = 0
-    var inputIndex = 0
-
-    while (index < length) {
-        result[index++] = inputL[inputIndex]
-        result[index++] = inputR[inputIndex]
-        inputIndex++
-    }
-    return result
-}
-
-function writeFloat32(output, offset, input) {
-    for (var i = 0; i < input.length; i++ , offset += 4) {
-        output.setFloat32(offset, input[i], true)
-    }
-}
-
-function floatTo16BitPCM(output, offset, input) {
-    for (var i = 0; i < input.length; i++ , offset += 2) {
-        var s = Math.max(-1, Math.min(1, input[i]))
-        output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
-    }
-}
-
-function writeString(view, offset, string) {
-    for (var i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i))
-    }
+            },
+            function (err) {
+                console.log("There was an error uploading the mesage: ", err.message);
+            }
+        );
+    }).catch(function(e) {
+        // Unable to get MP3 audio
+        // TODO: prompt user somehow
+        console.error(e);
+    });
 }
 
 // UUID gen
