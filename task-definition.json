@@ -1,0 +1,159 @@
+{
+    "ipcMode": null,
+    "executionRoleArn": "arn:aws:iam::605384816250:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+      {
+        "dnsSearchDomains": null,
+        "environmentFiles": null,
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "secretOptions": null,
+          "options": {
+            "awslogs-group": "/ecs/bam-demo-app",
+            "awslogs-region": "us-east-2",
+            "awslogs-stream-prefix": "ecs"
+          }
+        },
+        "entryPoint": null,
+        "portMappings": [
+          {
+            "hostPort": 80,
+            "protocol": "tcp",
+            "containerPort": 80
+          }
+        ],
+        "command": null,
+        "linuxParameters": null,
+        "cpu": 0,
+        "environment": [
+          {
+            "name": "GUNICORN_reload",
+            "value": "True"
+          },
+          {
+            "name": "LOG_LEVEL",
+            "value": "DEBUG"
+          },
+          {
+            "name": "SB_API_VERSION",
+            "value": "0"
+          },
+          {
+            "name": "SB_REDIRECT_URL",
+            "value": "http://bam-demo.com/auth"
+          }
+        ],
+        "resourceRequirements": null,
+        "ulimits": null,
+        "dnsServers": null,
+        "mountPoints": [],
+        "workingDirectory": null,
+        "secrets": [
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/sb-client-id",
+            "name": "SB_CLIENT_ID"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/sb-secret",
+            "name": "SB_SECRET"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/session-key",
+            "name": "SESSION_KEY"
+          }
+        ],
+        "dockerSecurityOptions": null,
+        "memory": null,
+        "memoryReservation": 256,
+        "volumesFrom": [],
+        "stopTimeout": null,
+        "image": "605384816250.dkr.ecr.us-east-2.amazonaws.com/bam-demo:latest",
+        "startTimeout": null,
+        "firelensConfiguration": null,
+        "dependsOn": null,
+        "disableNetworking": null,
+        "interactive": null,
+        "healthCheck": null,
+        "essential": true,
+        "links": null,
+        "hostname": null,
+        "extraHosts": null,
+        "pseudoTerminal": null,
+        "user": null,
+        "readonlyRootFilesystem": null,
+        "dockerLabels": null,
+        "systemControls": null,
+        "privileged": null,
+        "name": "bam-demo-latest"
+      }
+    ],
+    "placementConstraints": [],
+    "memory": null,
+    "taskRoleArn": "arn:aws:iam::605384816250:role/ecsTaskExecutionRole",
+    "compatibilities": [
+      "EC2"
+    ],
+    "taskDefinitionArn": "arn:aws:ecs:us-east-2:605384816250:task-definition/bam-demo-app:1",
+    "family": "bam-demo-app",
+    "requiresAttributes": [
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+      },
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "ecs.capability.execution-role-awslogs"
+      },
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "com.amazonaws.ecs.capability.ecr-auth"
+      },
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+      },
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "com.amazonaws.ecs.capability.docker-remote-api.1.21"
+      },
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "com.amazonaws.ecs.capability.task-iam-role"
+      },
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "ecs.capability.execution-role-ecr-pull"
+      },
+      {
+        "targetId": null,
+        "targetType": null,
+        "value": null,
+        "name": "ecs.capability.secrets.ssm.environment-variables"
+      }
+    ],
+    "pidMode": null,
+    "requiresCompatibilities": [
+      "EC2"
+    ],
+    "networkMode": null,
+    "cpu": null,
+    "revision": 1,
+    "status": "ACTIVE",
+    "inferenceAccelerators": null,
+    "proxyConfiguration": null,
+    "volumes": []
+  }
