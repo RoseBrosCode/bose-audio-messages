@@ -7,9 +7,19 @@ from logging.config import dictConfig
 from switchboard import get_products, refresh_sb_token, send_audio_notification
 from util import b64encode_str
 
+class ReverseProxied(object):
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        scheme = environ.get('HTTP_X_FORWARDED_PROTO')
+        if scheme:
+            environ['wsgi.url_scheme'] = scheme
+        return self.app(environ, start_response)
 
 # Create flask app
 app = Flask(__name__, static_folder="client/public")
+app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.secret_key = os.environ['SESSION_KEY']
 
 # Set templates dir
