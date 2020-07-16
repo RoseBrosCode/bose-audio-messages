@@ -14,6 +14,9 @@
 
 <body>
   <div class="container">
+    <div class="row pt-4">
+      <a href="{{ url_for('bam_logout') }}">Logout</a>
+    </div>
     <div class="row justify-content-center pt-4">
       <img src='{{ url_for('static', filename='images/bose-logo.png') }}' height="100px" width="100px" />
     </div>
@@ -58,7 +61,7 @@
 
   <!-- set root of server to JS variable -->
   <script type=text/javascript>
-    window.serverRoot = "{{ url_for('home_login') }}";
+    window.serverRoot = "{{ url_for('app_home') }}";
     window.staticFilepath = "{{ url_for('static', filename='') }}";
   </script>
 

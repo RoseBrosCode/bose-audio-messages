@@ -7,6 +7,7 @@ services:
       dockerfile: server/Dockerfile
     volumes: ["./server:/server"]
     ports: ["8000:80"]
+    depends_on: ["redis"]
     environment: 
       - LOG_LEVEL=DEBUG
       - GUNICORN_reload=True
@@ -15,3 +16,9 @@ services:
       - SB_API_VERSION=0
       - SB_REDIRECT_URL=http://localhost:8000/auth
       - SESSION_KEY=${SESSION_KEY}
+      - REDIS_URL=redis://redis:6379
+      - REDIS_ENCRYPTION_KEY=${REDIS_ENCRYPTION_KEY}
+
+  redis:
+    image: redis:6-alpine
+    ports: ["6379:6379"]
