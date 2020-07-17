@@ -184,3 +184,23 @@ class User(UserMixin):
                 return self.set_access_token(access_token, retries=retries-1)
             return False
         return True
+
+    def clear_tokens(self, retries=1):
+        try:
+            # Create transaction
+            pipeline = db.pipeline()
+
+            # Delete refresh token
+            pipeline.hdel(f"user:{self.user_id}", "encrypted_refresh_token")
+
+            # Delete access token
+            pipeline.hdel(f"user:{self.user_id}", "encrypted_access_token")
+
+            # Execute transaction
+            pipeline.execute()
+        except ConnectionError:
+            logger.error(f"unable to clear_tokens, retries remaining = {retries}")
+            if retries > 0:
+                return self.set_access_token(access_token, retries=retries-1)
+            return False
+        return True

@@ -44,12 +44,10 @@ app = Flask(FLASK_NAME, static_folder="client/public")
 app.wsgi_app = ReverseProxied(app.wsgi_app)
 app.secret_key = os.environ['SESSION_KEY']
 
-try:
-    login_manager = LoginManager()
-    login_manager.login_view = 'bam_login'
-    login_manager.init_app(app)
-except Exception as e:
-    app.logger.error(e)
+# Setup flask-login
+login_manager = LoginManager()
+login_manager.login_view = 'bam_login'
+login_manager.init_app(app)
 
 # Set login user_loader
 @login_manager.user_loader
@@ -101,7 +99,7 @@ def bam_logout():
     logout_user()
     return redirect(url_for('bam_login'))
 
-@app.route('/login/switchboard')
+@app.route('/login/bose')
 @login_required
 def sb_login():
     refresh_token = current_user.get_refresh_token()
@@ -119,7 +117,7 @@ def auth_redirect():
     # get Switchboard tokens and put in session
     t_auth_header = 'Basic ' + b64encode_str(os.environ['SB_CLIENT_ID'] + ':' + os.environ['SB_SECRET'])
     t_headers = {'Authorization': t_auth_header}
-    t_data = {'grant_type':'authorization_code', 'code':request.args['code'], 'redirect_uri':os.environ['SB_REDIRECT_URL']}
+    t_data = {'grant_type': 'authorization_code', 'code': request.args['code'], 'redirect_uri': os.environ['SB_REDIRECT_URL']}
     tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=t_headers, data=t_data)
     current_user.set_refresh_token(tokens.json()['refresh_token'])
     current_user.set_access_token(tokens.json()['access_token'])
@@ -137,6 +135,9 @@ def app_home():
             refresh_token = current_user.get_refresh_token()
             if refresh_token:
                 access_token = refresh_sb_token(refresh_token)
+                if access_token is None:
+                    current_user.clear_tokens()
+                    return redirect(url_for('sb_login'))
                 current_user.set_access_token(access_token)
                 products_res = get_products(access_token)
             else:
@@ -181,6 +182,9 @@ def play_msg():
             refresh_token = current_user.get_refresh_token()
             if refresh_token:
                 access_token = refresh_sb_token(refresh_token)
+                if access_token is None:
+                    current_user.clear_tokens()
+                    return redirect(url_for('sb_login'))
                 current_user.set_access_token(access_token)
                 an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'])
             else:

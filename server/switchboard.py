@@ -1,17 +1,24 @@
 import os
 import requests
+import logging
 from flask import session
 
 from util import b64encode_str
+from constants import *
 
+
+logger = logging.getLogger(FLASK_NAME)
 
 def refresh_sb_token(refresh_token):
     """ Refreshes Switchboard Access Token """
     t_auth_header = 'Basic ' + b64encode_str(os.environ['SB_CLIENT_ID'] + ':' + os.environ['SB_SECRET'])
     t_headers = {'Authorization': t_auth_header}
-    t_data = {'grant_type':'refresh_token', 'refresh_token': refresh_token}
+    t_data = {'grant_type': 'refresh_token', 'refresh_token': refresh_token}
     tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=t_headers, data=t_data)
-    return tokens.json()['access_token']
+    access_token = tokens.json().get('access_token', None)
+    if access_token is None:
+        logger.warning(f"refresh token response did not provide access token: {tokens.json()}")
+    return access_token
 
 
 def get_products(acc_token):
