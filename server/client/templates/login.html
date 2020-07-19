@@ -1,11 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <title>Bose Audio Messages - Sign In</title>
-</head>
+{% block head %}
+  <!-- super pulls in the parent's head block -->
+  {{ super() }} 
+  <!-- can add additional head here below here before the endblock -->
+{% endblock %}
 
-<body>
+
+{% block body %}
     <h1>
         Bose Audio Messages
     </h1>
@@ -32,6 +34,4 @@
         <p>{{ form.submit() }}</p>
     </form>
     <p><a href="{{ url_for('register') }}">Register</a></p>
-</body>
-
-</html>
+{% endblock %}
