@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-  <link rel='stylesheet' href="{{ url_for('static', filename='stylesheets/fonts.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel='stylesheet' href="{{ url_for('static', filename='stylesheets/style.css') }}" />
   <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
 </head>
@@ -18,10 +18,10 @@
       <a href="{{ url_for('bam_logout') }}">Logout</a>
     </div>
     <div class="row justify-content-center pt-4">
-      <img src='{{ url_for('static', filename='images/bose-logo.png') }}' height="100px" width="100px" />
+      <img src='{{ url_for('static', filename='images/bam-logo.png') }}' height="100px" width="100px" />
     </div>
     <div class="row justify-content-center pt-4">
-      <h2 style="font-family: 'Gotham 7r';">Audio Messages</h2>
+      <h2 style="font-weight: bold;">Audio Messages</h2>
     </div>
     <div class="row justify-content-center">
       <p>Tap and hold a product to record, release to send.</p>
@@ -36,7 +36,7 @@
             height="220px" width="220px">
         </div>
         <div class="row justify-content-center pb-4">
-          <span style="font-family: 'Gotham 7r';">{{ product.product_name }}</span>
+          <span style="font-weight: bold;">{{ product.product_name }}</span>
         </div>
         {% endfor %}
       </div>

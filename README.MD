@@ -6,7 +6,7 @@ Loosely in priority order below
 - ~Fix audio quality issue (rtr)~ done!
 - ~Add in login/persistence (rtr)~ done!
 - consider fixes for early cutoff issue (rtr)
-- remove Bose branding (zwr)
+- ~remove Bose branding (zwr)~ done!
 - Add styling for login pages (zwr)
 - consider redesign of primary page to get more products on screen without scrolling on typical phone sizes (zwr)
 - [Pending UX resolution] Add support for all product images plus default (zwr)
