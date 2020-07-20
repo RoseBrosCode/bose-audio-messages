@@ -110,7 +110,7 @@ def sb_login():
     redirect_url = os.environ['SB_REDIRECT_URL']
 
     # First time? Get the login button
-    return render_template('home.html', client_id=client_id, redirect_url=redirect_url)
+    return render_template('bose-link.html', client_id=client_id, redirect_url=redirect_url)
 
 @app.route('/auth')
 def auth_redirect():
@@ -164,7 +164,7 @@ def app_home():
             })
 
         # List the products
-        return render_template('index.html', products=client_products)
+        return render_template('app.html', products=client_products)
                 
     else:
         return redirect(url_for('sb_login'))
