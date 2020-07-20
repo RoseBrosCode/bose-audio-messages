@@ -5,6 +5,7 @@ Tap and hold a product to record and send a quick audio message to a Bose Smart 
 Loosely in priority order below
 - ~Fix audio quality issue (rtr)~ done!
 - ~Add in login/persistence (rtr)~ done!
+- update repo to use `main` instead of `master` (guide https://www.hanselman.com/blog/EasilyRenameYourGitDefaultBranchFromMasterToMain.aspx) (also don't forget to update the aws deployment action config file)
 - consider fixes for early cutoff issue (rtr)
 - ~remove Bose branding (zwr)~ done!
 - Add styling for login pages (zwr)
