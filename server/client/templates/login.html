@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <!-- super pulls in the parent's head block -->
+  {{ super() }} 
+  <!-- can add additional head here below here before the endblock -->
+{% endblock %}
+
+
+{% block body %}
+    <h1>
+        Bose Audio Messages
+    </h1>
+    <h2>Sign In</h2>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.username.label }}<br>
+            {{ form.username(size=32) }}
+        </p>
+        <p>
+            {{ form.password.label }}<br>
+            {{ form.password(size=32) }}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    <p><a href="{{ url_for('register') }}">Register</a></p>
+{% endblock %}

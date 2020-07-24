@@ -1,12 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Bose Audio Messages - Sign In</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block head %}
+  <!-- super pulls in the parent's head block -->
+  {{ super() }} 
+  <!-- can add additional head here below here before the endblock -->
+{% endblock %}
+
+
+{% block body %}
     <h1>
         Bose Audio Messages
     </h1>
     <p><a href="https://partners.api.bose.io/auth/oauth/authorize?response_type=code&client_id={{ client_id }}&redirect_uri={{ redirect_url }}&scope=owned_products_all&state=bambros">Sign into your MyBose Account</a></p>
-</body>
-</html>
+{% endblock %}

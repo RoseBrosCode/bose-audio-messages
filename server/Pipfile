@@ -8,6 +8,10 @@ flask = "*"
 gevent = "*"
 gunicorn = "*"
 requests = "*"
+flask-login = "*"
+redis = "*"
+cryptography = "*"
+flask-wtf = "*"
 
 [dev-packages]
 
