@@ -27,10 +27,6 @@
         "cpu": 0,
         "environment": [
           {
-            "name": "GUNICORN_reload",
-            "value": "True"
-          },
-          {
             "name": "LOG_LEVEL",
             "value": "DEBUG"
           },
@@ -60,6 +56,14 @@
           {
             "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/session-key",
             "name": "SESSION_KEY"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/redis-encryption-key",
+            "name": "REDIS_ENCRYPTION_KEY"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/redis-url",
+            "name": "REDIS_URL"
           }
         ],
         "dockerSecurityOptions": null,
