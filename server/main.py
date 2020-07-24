@@ -59,6 +59,11 @@ app.jinja_loader = jinja2.ChoiceLoader(
     [app.jinja_loader, jinja2.FileSystemLoader("client/templates")])
 
 
+@app.route('/health')
+def health():
+    return 'OK', 200
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
