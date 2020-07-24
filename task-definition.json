@@ -77,7 +77,10 @@
         "dependsOn": null,
         "disableNetworking": null,
         "interactive": null,
-        "healthCheck": null,
+        "healthCheck": {
+          "command": [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ],
+          "interval": 10
+        },
         "essential": true,
         "links": null,
         "hostname": null,
