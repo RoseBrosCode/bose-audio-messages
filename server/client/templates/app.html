@@ -39,7 +39,7 @@
   </div>
 
   {% for image_filename in image_filenames %}
-    <img src="{{ url_for('static', filename='images/' + image_name) }}" height="1px" width="1px" style="display: none;"/>
+    <img src="{{ url_for('static', filename='images/' + image_filename) }}" height="1px" width="1px" style="display: none;"/>
   {% endfor %}
 
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
