@@ -64,6 +64,14 @@
           {
             "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/redis-url",
             "name": "REDIS_URL"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/google-oauth-client-id",
+            "name": "GOOGLE_OAUTH_CLIENT_ID"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/google-oauth-client-secret",
+            "name": "GOOGLE_OAUTH_CLIENT_SECRET"
           }
         ],
         "dockerSecurityOptions": null,

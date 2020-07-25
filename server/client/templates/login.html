@@ -21,6 +21,7 @@
     </ul>
     {% endif %}
     {% endwith %}
+    <a href="{{ url_for('google.login') }}">Log in with Google</a>
     <form action="" method="post" novalidate>
         {{ form.hidden_tag() }}
         <p>

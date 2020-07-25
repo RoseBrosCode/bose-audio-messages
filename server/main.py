@@ -1,6 +1,7 @@
 import os
 import jinja2
 import requests
+import logging 
 from logging.config import dictConfig
 from flask import Flask, render_template, redirect, render_template, request, session, url_for, flash
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
@@ -25,7 +26,7 @@ dictConfig({
 from switchboard import get_products, refresh_sb_token, send_audio_notification
 from util import b64encode_str
 from constants import *
-from user import User
+from user import User, google_bp
 from forms import LoginForm, RegistrationForm
 
 # Use reverse proxy to ensure url_for populates with the correct scheme
@@ -49,6 +50,14 @@ login_manager = LoginManager()
 login_manager.login_view = 'bam_login'
 login_manager.init_app(app)
 
+# Setup google flask-dance
+app.config["GOOGLE_OAUTH_CLIENT_ID"] = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+app.config["GOOGLE_OAUTH_CLIENT_SECRET"] = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+app.register_blueprint(google_bp, url_prefix="/login")
+
+# Get logger
+logger = logging.getLogger(FLASK_NAME)
+
 # Set login user_loader
 @login_manager.user_loader
 def load_user(user_id):
@@ -63,6 +72,12 @@ app.jinja_loader = jinja2.ChoiceLoader(
 def health():
     return 'OK', 200
 
+@app.route('/')
+def landing():
+    if current_user.is_authenticated:
+        return redirect(url_for('sb_login'))
+    return render_template('landing.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -71,7 +86,7 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User.create_user(form.username.data, form.password.data)
-        app.logger.info(f"created user: {user}")
+        logger.info(f"created user: {user}")
         login_user(user, remember=True)
         return redirect(url_for('sb_login'))
     return render_template('register.html', form=form)
@@ -130,7 +145,7 @@ def auth_redirect():
     # Redirect to app
     return redirect(url_for('app_home'))
 
-@app.route('/')
+@app.route('/app')
 @login_required
 def app_home():
     access_token = current_user.get_access_token()
@@ -149,7 +164,7 @@ def app_home():
                 return redirect(url_for('sb_login'))
                 
         products_array = products_res.json()['results']
-        app.logger.debug(f"products: {products_array}")
+        logger.debug(f"products: {products_array}")
 
         # image_name_map = {
         #     'Bose Home Speaker 300': 'flipper',
@@ -178,7 +193,7 @@ def app_home():
 @login_required
 def play_msg():
     requested_msg = request.get_json()
-    app.logger.debug(requested_msg)
+    logger.debug(requested_msg)
 
     access_token = current_user.get_access_token()
     if access_token:
@@ -195,9 +210,13 @@ def play_msg():
             else:
                 return redirect(url_for('sb_login'))
 
-        app.logger.debug(an_res.json())
+        logger.debug(an_res.json())
 
         # tell the browser all was fine
         return "", 204
                 
     return redirect(url_for('sb_login'))
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
