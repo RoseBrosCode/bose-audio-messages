@@ -3,15 +3,21 @@ import redis
 import logging
 import uuid
 
-from flask_login import UserMixin
+from flask import flash
+from flask_login import UserMixin, login_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from redis.exceptions import LockError
 from cryptography.fernet import Fernet, InvalidToken
+from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.consumer import oauth_authorized, oauth_error
 
 from constants import *
 
 
 logger = logging.getLogger(FLASK_NAME)
+
+# create google flask-dance bp
+google_bp = make_google_blueprint(scope=["profile", "email"])
 
 # Initialize Redis connection
 db = redis.Redis.from_url(os.environ.get("REDIS_URL"))
@@ -34,10 +40,11 @@ except Exception as e:
 class User(UserMixin):
     """Models a user of BAM."""
 
-    def __init__(self, user_id, username, password_hash, encrypted_refresh_token=None, encrypted_access_token=None):
+    def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, encrypted_refresh_token=None, encrypted_access_token=None):
         self.user_id = user_id
         self.username = username
         self.password_hash = password_hash
+        self.encrypted_provider_access_token = encrypted_provider_access_token
         self.encrypted_refresh_token = encrypted_refresh_token
         self.encrypted_access_token = encrypted_access_token
 
@@ -63,12 +70,12 @@ class User(UserMixin):
         """Populates a User object from a dict returned from Redis."""
         # Ensure all keys and values are strings
         d = { key.decode() if type(key) == bytes 
-                else key: 
+                else key:
               val.decode() if type(val) == bytes 
                 else val 
                 for key, val in d.items() }
         logger.debug(f"getting user from dict: {d}")
-        return User(d["user_id"], d["username"], d["password_hash"], 
+        return User(d["user_id"], d["username"], d["password_hash"], d["encrypted_provider_access_token"],
                     d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None))
 
     @staticmethod
@@ -87,13 +94,13 @@ class User(UserMixin):
         return None
 
     @staticmethod
-    def create_user(username, password, retries=1):
+    def create_user(username, password=None, provider_access_token=None, retries=1):
         """Creates a new user and stores it in Redis."""
         # Case insensitive usernames
         username_lower = username.lower()
 
         try:
-            with db.lock("user_lock", blocking_timeout=1) as lock:
+            with db.lock("user_lock", blocking_timeout=1):
                 # Ensure username is unique
                 if db.hget("users:", username_lower):
                     logger.warning(f"username {username_lower} already exists")
@@ -107,11 +114,22 @@ class User(UserMixin):
                 pipeline.hset("users:", username_lower, user_id)
 
                 # Create user entry
-                password_hash = generate_password_hash(password)
+                # If password exists, hash it
+                password_hash = ""
+                if password:
+                    password_hash = generate_password_hash(password)
+
+                # If provider_access_token exists, encrypt it
+                encrypted_provider_access_token = ""
+                if provider_access_token:
+                    encrypted_provider_access_token = secret_key.encrypt(provider_access_token.encode())
+
+                # TODO: add password_hash and encrypted_provider_access_token to user_dict
                 user_dict = {
                     "user_id": user_id,
                     "username": username_lower,
-                    "password_hash": password_hash
+                    "password_hash": password_hash,
+                    "encrypted_provider_access_token": encrypted_provider_access_token
                 }
                 pipeline.hset(f"user:{user_id}", mapping=user_dict)
 
@@ -134,7 +152,7 @@ class User(UserMixin):
         # Case insensitive usernames
         username_lower = username.lower()
 
-        with db.lock("user_lock", blocking_timeout=1) as lock:
+        with db.lock("user_lock", blocking_timeout=1):
             try:
                 return db.hget("users:", username_lower)
             except (LockError, ConnectionError):
@@ -158,7 +176,7 @@ class User(UserMixin):
             return secret_key.decrypt(self.encrypted_refresh_token.encode()).decode()
         return None
 
-    def set_refresh_token(self, refresh_token):
+    def set_refresh_token(self, refresh_token, retries=1):
         self.encrypted_refresh_token = secret_key.encrypt(refresh_token.encode())
         try:
             db.hset(f"user:{self.user_id}", "encrypted_refresh_token", self.encrypted_refresh_token)
@@ -185,6 +203,22 @@ class User(UserMixin):
             return False
         return True
 
+    def get_provider_access_token(self):
+        if self.encrypted_provider_access_token:
+            return secret_key.decrypt(self.encrypted_provider_access_token.encode()).decode()
+        return None
+
+    def set_provider_access_token(self, provider_access_token, retries=1):
+        self.encrypted_provider_access_token = secret_key.encrypt(provider_access_token.encode())
+        try:
+            db.hset(f"user:{self.user_id}", "encrypted_provider_access_token", self.encrypted_provider_access_token)
+        except ConnectionError:
+            logger.error(f"unable to set_provider_access_token, retries remaining = {retries}")
+            if retries > 0:
+                return self.set_provider_access_token(provider_access_token, retries=retries-1)
+            return False
+        return True
+
     def clear_tokens(self, retries=1):
         try:
             # Create transaction
@@ -201,6 +235,50 @@ class User(UserMixin):
         except ConnectionError:
             logger.error(f"unable to clear_tokens, retries remaining = {retries}")
             if retries > 0:
-                return self.set_access_token(access_token, retries=retries-1)
+                return self.clear_tokens(retries=retries-1)
             return False
         return True
+
+# create/login local user on successful OAuth login
+@oauth_authorized.connect_via(google_bp)
+def google_logged_in(blueprint, token):
+    if not token:
+        flash("Failed to log in.", category="error")
+        return False
+
+    token_string = str(token)
+
+    # Get OIDC userinfo
+    resp = blueprint.session.get("/oauth2/v1/userinfo")
+    if not resp.ok:
+        msg = "Failed to fetch user info."
+        flash(msg, category="error")
+        return False
+
+    info = resp.json()
+    logger.debug(f"Google userinfo response: {info}") 
+    user_email = info["email"]
+
+    user = User.get_user_by_username(user_email)
+    if user:
+        user.set_provider_access_token(token_string)
+        login_user(user)
+        return False
+
+    # Create a new local user account for this user
+    user = User.create_user(user_email, provider_access_token=token_string)
+    login_user(user)
+    flash("Successfully signed in.")
+
+    # Disable Flask-Dance's default behavior for saving the OAuth token
+    return False
+
+
+# notify on OAuth provider error
+@oauth_error.connect_via(google_bp)
+def google_error(blueprint, message, response):
+    msg = "OAuth error from {name}! message={message} response={response}".format(
+        name=blueprint.name, message=message, response=response
+    )
+    flash(msg, category="error")
+    
