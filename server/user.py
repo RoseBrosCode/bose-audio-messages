@@ -17,7 +17,7 @@ from constants import *
 logger = logging.getLogger(FLASK_NAME)
 
 # create google flask-dance bp
-google_bp = make_google_blueprint(scope=["profile", "email"])
+google_bp = make_google_blueprint(scope=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"])
 
 # Initialize Redis connection
 db = redis.Redis.from_url(os.environ.get("REDIS_URL"))
