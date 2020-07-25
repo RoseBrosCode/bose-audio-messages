@@ -75,7 +75,7 @@ class User(UserMixin):
                 else val 
                 for key, val in d.items() }
         logger.debug(f"getting user from dict: {d}")
-        return User(d["user_id"], d["username"], d["password_hash"], d["encrypted_provider_access_token"],
+        return User(d["user_id"], d["username"], d["password_hash"], d.get("encrypted_provider_access_token", None),
                     d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None))
 
     @staticmethod
