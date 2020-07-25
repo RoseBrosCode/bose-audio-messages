@@ -183,8 +183,17 @@ def app_home():
                 'image_name': 'eddie-black' # placeholder for now, when all images are live replace with image_name_map.get(p['productType'], 'default') and uncomment image_name_map
             })
 
+        # Image names to preload
+        image_filenames = [
+            "eddie-black.png",
+            "eddie-black-getting-ready.png",
+            "eddie-black-recording.png",
+            "eddie-black-sending.png",
+            "eddie-black-sent.png"
+        ]
+
         # List the products
-        return render_template('app.html', products=client_products)
+        return render_template('app.html', products=client_products, image_filenames=image_filenames)
                 
     else:
         return redirect(url_for('sb_login'))

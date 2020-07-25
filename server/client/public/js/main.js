@@ -49,15 +49,19 @@ function preventMenu(e) {
 
 function pressingDown(e) {
     e.preventDefault();
-    e.target.src = window.staticFilepath + "/images/" + $(e.target).attr("imageName") + "-recording.png";
-    recorder.start();
+    var t = Date.now();
+    e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-getting-ready.png";
+    recorder.start().then(function() {
+        console.log("getting ready time", Date.now() - t);
+        e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
+    });
     console.log("Pressing!");
 }
 
 function notPressingDown(e) {
     console.log("Not pressing!", e.target.id);
     activeProduct = e.target;
-    e.target.src = window.staticFilepath + "/images/" + $(e.target).attr("imageName") + "-sending.png";
+    e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-sending.png";
 
     // Stop recording
     recorder.stop().getMp3().then(function([buffer, blob]){
@@ -96,10 +100,10 @@ function notPressingDown(e) {
                     })
 
                 }).then(() => {
-                    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + "-sent.png";
+                    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
 
                     setTimeout(() => {
-                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + ".png";
+                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
                     }, 5000);
                 });
 
