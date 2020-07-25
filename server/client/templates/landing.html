@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <!-- super pulls in the parent's head block -->
+  {{ super() }} 
+  <!-- can add additional head here below here before the endblock -->
+{% endblock %}
+
+
+{% block body %}
+    <h1>
+        Landing Page Coming Soon
+    </h1>
+    <a href="{{ url_for('register') }}">Get Started</a>
+{% endblock %}

@@ -63,6 +63,12 @@ app.jinja_loader = jinja2.ChoiceLoader(
 def health():
     return 'OK', 200
 
+@app.route('/')
+def landing():
+    if current_user.is_authenticated:
+        return redirect(url_for('sb_login'))
+    return render_template('landing.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -130,7 +136,7 @@ def auth_redirect():
     # Redirect to app
     return redirect(url_for('app_home'))
 
-@app.route('/')
+@app.route('/app')
 @login_required
 def app_home():
     access_token = current_user.get_access_token()
