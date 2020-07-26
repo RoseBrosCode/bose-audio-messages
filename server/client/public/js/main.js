@@ -5,6 +5,7 @@ var buttons = document.querySelector("#buttons");
 var recorder;
 var filename;
 var activeProduct;
+var prefixBlob;
 var awsCreds = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: 'us-east-2:3d2538af-9a51-40f1-a1e0-58263df824bd'
 });
@@ -37,6 +38,14 @@ window.onload = function () {
         // TODO: prompt user somehow
         console.error(e);
     });
+
+    // Fetch prefix audio file
+    fetch(window.staticFilepath + "audio/chime.mp3")
+        .then(function(response) {
+            return response.blob();
+        }).then(function(blob) {
+            prefixBlob = blob;
+        });
 };
 
 function preventMenu(e) {
@@ -49,18 +58,21 @@ function preventMenu(e) {
 
 function pressingDown(e) {
     e.preventDefault();
-    e.target.src = window.staticFilepath + "/images/" + $(e.target).attr("imageName") + "-recording.png";
-    recorder.start();
-    console.log("Pressing!");
+    e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-getting-ready.png";
+    recorder.start().then(function() {
+        e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
+    });
 }
 
 function notPressingDown(e) {
-    console.log("Not pressing!", e.target.id);
     activeProduct = e.target;
-    e.target.src = window.staticFilepath + "/images/" + $(e.target).attr("imageName") + "-sending.png";
+    e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-sending.png";
 
     // Stop recording
     recorder.stop().getMp3().then(function([buffer, blob]){
+        // Append prefix to blob
+        var finalBlob = new Blob([prefixBlob, blob], { type: blob.type });
+
         // Upload to S3
         var uuid = generateUUID();
         // bam_msg_ prefixed objects are cleaned up after 1 day
@@ -69,7 +81,7 @@ function notPressingDown(e) {
             params: {
                 Bucket: "bose-audio-messages-demo",
                 Key: filename,
-                Body: blob,
+                Body: finalBlob,
                 ACL: "public-read"
             }
         });
@@ -96,10 +108,10 @@ function notPressingDown(e) {
                     })
 
                 }).then(() => {
-                    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + "-sent.png";
+                    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
 
                     setTimeout(() => {
-                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "/images/" + $(activeProduct).attr("imageName") + ".png";
+                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
                     }, 5000);
                 });
 

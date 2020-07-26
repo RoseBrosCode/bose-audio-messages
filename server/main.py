@@ -28,6 +28,7 @@ from util import b64encode_str
 from constants import *
 from user import User, google_bp
 from forms import LoginForm, RegistrationForm
+from images import get_product_image_name_and_filenames
 
 # Use reverse proxy to ensure url_for populates with the correct scheme
 class ReverseProxied(object):
@@ -166,25 +167,20 @@ def app_home():
         products_array = products_res.json()['results']
         logger.debug(f"products: {products_array}")
 
-        # image_name_map = {
-        #     'Bose Home Speaker 300': 'flipper',
-        #     'Bose Home Speaker 450': 'eddie-club',
-        #     'Bose Home Speaker 500': 'eddie',
-        #     'Bose Soundbar 500': 'professor',
-        #     'Bose Soundbar 700': 'g-c',
-        #     'Bose Portable Home Speaker': 'taylor'
-        # }
-
         client_products = []
+        image_filenames = []
         for p in products_array:
+            image_name, product_image_filenames = get_product_image_name_and_filenames('Bose Home Speaker 500')
+            # TODO: image_name, product_image_filenames = get_product_image_name_and_filenames(p['productType'])
+            image_filenames += product_image_filenames
             client_products.append({
                 'product_id': p['productID'],
                 'product_name': p['productName'],
-                'image_name': 'eddie-black' # placeholder for now, when all images are live replace with image_name_map.get(p['productType'], 'default') and uncomment image_name_map
+                'image_name': 'eddie-black' # TODO: image_name
             })
 
         # List the products
-        return render_template('app.html', products=client_products)
+        return render_template('app.html', products=client_products, image_filenames=set(image_filenames))
                 
     else:
         return redirect(url_for('sb_login'))
