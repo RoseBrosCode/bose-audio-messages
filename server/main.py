@@ -179,8 +179,15 @@ def app_home():
                 'image_name': 'eddie-black' # TODO: image_name
             })
 
+        # Get the preferred message volume
+        if current_user.preferred_volume:
+            stored_preferred_volume = current_user.preferred_volume
+        else:
+            stored_preferred_volume = default_preferred_volume
+            current_user.set_preferred_volume(stored_preferred_volume)
+        
         # List the products
-        return render_template('app.html', products=client_products, image_filenames=set(image_filenames))
+        return render_template('app.html', products=client_products, image_filenames=set(image_filenames), preferred_volume=stored_preferred_volume)
                 
     else:
         return redirect(url_for('sb_login'))

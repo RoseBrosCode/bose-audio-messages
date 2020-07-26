@@ -15,6 +15,9 @@ var awsConfig = new AWS.Config({
 });
 AWS.config.update(awsConfig);
 
+// set up volume slider
+var volumeSlider = new Slider(document.querySelector("#volume-slider"));
+
 // Listening for the mouse and touch events    
 buttons.addEventListener("mousedown", pressingDown, false);
 buttons.addEventListener("mouseup", notPressingDown, false);
@@ -97,7 +100,8 @@ function notPressingDown(e) {
                     "origin": "BAM Web App",
                     "key": filename,
                     "target_product": activeProduct.id,
-                    "url": data.Location
+                    "url": data.Location,
+                    "volume": volumeSlider.getValue()
                 }
                 console.log(message);
                 fetch(playUrl, {
