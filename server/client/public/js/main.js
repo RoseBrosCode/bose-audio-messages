@@ -6,6 +6,7 @@ var recorder;
 var filename;
 var activeProduct;
 var prefixBlob;
+var volumeSlider;
 var awsCreds = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: 'us-east-2:3d2538af-9a51-40f1-a1e0-58263df824bd'
 });
@@ -14,9 +15,6 @@ var awsConfig = new AWS.Config({
     region: 'us-east-2'
 });
 AWS.config.update(awsConfig);
-
-// set up volume slider
-var volumeSlider = new Slider(document.querySelector("#volume-slider"));
 
 // Listening for the mouse and touch events    
 buttons.addEventListener("mousedown", pressingDown, false);
@@ -27,6 +25,9 @@ buttons.addEventListener("touchend", notPressingDown, false);
 document.oncontextmenu = function () { return false; };
 
 window.onload = function () {
+    // set up volume slider
+    volumeSlider = $("#volume-slider").slider();
+
     // Construct recorder
     recorder = new MicRecorder({
         bitRate: 128
