@@ -102,7 +102,7 @@ function notPressingDown(e) {
                     "key": filename,
                     "target_product": activeProduct.id,
                     "url": data.Location,
-                    "volume": volumeSlider.getValue()
+                    "volume": volumeSlider.slider('getValue')
                 }
                 console.log(message);
                 fetch(playUrl, {
