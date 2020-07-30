@@ -115,7 +115,7 @@ def bam_login():
     # Serve login page if not already logged in
     return render_template('login.html', form=form)
 
-@app.route('/logout')
+@app.route('/logout/bam')
 def bam_logout():
     logout_user()
     return redirect(url_for('bam_login'))
@@ -132,6 +132,13 @@ def sb_login():
 
     # First time? Get the login button
     return render_template('bose-link.html', client_id=client_id, redirect_url=redirect_url)
+
+@app.route('/logout/bose')
+@login_required
+def sb_logout():
+    # Disassociate the Bose Account from the BAM Account
+    current_user.clear_tokens()
+    return redirect(url_for('sb_login'))
 
 @app.route('/auth')
 def auth_redirect():
