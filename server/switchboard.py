@@ -33,7 +33,7 @@ def get_products(acc_token):
 
     return products_res
 
-def send_audio_notification(acc_token, product_id, msg_url):
+def send_audio_notification(acc_token, product_id, msg_url, volume=None):
     """ sends the specified URL as an Audio Notification to the specified product """
     sb_headers = {
         'Authorization': 'Bearer ' + acc_token,
@@ -45,6 +45,11 @@ def send_audio_notification(acc_token, product_id, msg_url):
         'url': msg_url
     }
 
+    if volume is not None:
+        sb_an_data.update(volumeOverride=volume)
+
+    logger.debug(sb_an_data)
     an_res = requests.post(f'https://partners.api.bose.io/products/{product_id}/content/notify', headers=sb_headers, json=sb_an_data)
 
     return an_res
+    

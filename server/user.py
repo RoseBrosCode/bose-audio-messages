@@ -40,13 +40,14 @@ except Exception as e:
 class User(UserMixin):
     """Models a user of BAM."""
 
-    def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, encrypted_refresh_token=None, encrypted_access_token=None):
+    def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, encrypted_refresh_token=None, encrypted_access_token=None, preferred_volume=DEFAULT_PREFERRED_VOLUME):
         self.user_id = user_id
         self.username = username
         self.password_hash = password_hash
         self.encrypted_provider_access_token = encrypted_provider_access_token
         self.encrypted_refresh_token = encrypted_refresh_token
         self.encrypted_access_token = encrypted_access_token
+        self.preferred_volume = preferred_volume
 
     @staticmethod
     def load_user(user_id, retries=1):
@@ -75,8 +76,8 @@ class User(UserMixin):
                 else val 
                 for key, val in d.items() }
         logger.debug(f"getting user from dict: {d}")
-        return User(d["user_id"], d["username"], d["password_hash"], d.get("encrypted_provider_access_token", None),
-                    d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None))
+        return User(d.get("user_id", None), d.get("username", None), d.get("password_hash", None), d.get("encrypted_provider_access_token", None),
+                    d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None), d.get("preferred_volume", None))
 
     @staticmethod
     def get_user_by_username(username, retries=1):
@@ -129,7 +130,8 @@ class User(UserMixin):
                     "user_id": user_id,
                     "username": username_lower,
                     "password_hash": password_hash,
-                    "encrypted_provider_access_token": encrypted_provider_access_token
+                    "encrypted_provider_access_token": encrypted_provider_access_token,
+                    "preferred_volume": DEFAULT_PREFERRED_VOLUME
                 }
                 pipeline.hset(f"user:{user_id}", mapping=user_dict)
 
@@ -219,6 +221,17 @@ class User(UserMixin):
             return False
         return True
 
+    def set_preferred_volume(self, preferred_volume, retries=1):
+        self.preferred_volume = preferred_volume
+        try:
+            db.hset(f"user:{self.user_id}", "preferred_volume", self.preferred_volume)
+        except ConnectionError:
+            logger.error(f"unable to set_preferred_volume, retries remaining = {retries}")
+            if retries > 0:
+                return self.set_preferred_volume(preferred_volume, retries=retries-1)
+            return False
+        return True
+
     def clear_tokens(self, retries=1):
         try:
             # Create transaction
@@ -268,7 +281,6 @@ def google_logged_in(blueprint, token):
     # Create a new local user account for this user
     user = User.create_user(user_email, provider_access_token=token_string)
     login_user(user)
-    flash("Successfully signed in.")
 
     # Disable Flask-Dance's default behavior for saving the OAuth token
     return False
