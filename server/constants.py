@@ -1,2 +1,2 @@
 FLASK_NAME = "BAM"
-default_preferred_volume = 35
+DEFAULT_PREFERRED_VOLUME = 35

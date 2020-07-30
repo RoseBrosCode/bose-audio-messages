@@ -40,7 +40,7 @@ except Exception as e:
 class User(UserMixin):
     """Models a user of BAM."""
 
-    def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, encrypted_refresh_token=None, encrypted_access_token=None, preferred_volume=default_preferred_volume):
+    def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, encrypted_refresh_token=None, encrypted_access_token=None, preferred_volume=DEFAULT_PREFERRED_VOLUME):
         self.user_id = user_id
         self.username = username
         self.password_hash = password_hash
@@ -130,7 +130,8 @@ class User(UserMixin):
                     "user_id": user_id,
                     "username": username_lower,
                     "password_hash": password_hash,
-                    "encrypted_provider_access_token": encrypted_provider_access_token
+                    "encrypted_provider_access_token": encrypted_provider_access_token,
+                    "preferred_volume": DEFAULT_PREFERRED_VOLUME
                 }
                 pipeline.hset(f"user:{user_id}", mapping=user_dict)
 

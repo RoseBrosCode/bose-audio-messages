@@ -52,3 +52,4 @@ def send_audio_notification(acc_token, product_id, msg_url, volume=None):
     an_res = requests.post(f'https://partners.api.bose.io/products/{product_id}/content/notify', headers=sb_headers, json=sb_an_data)
 
     return an_res
+    
