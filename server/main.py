@@ -200,7 +200,7 @@ def play_msg():
 
     access_token = current_user.get_access_token()
     if access_token:
-        an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'])
+        an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'], volume=requested_msg['volume'])
         if an_res.status_code == 403:
             refresh_token = current_user.get_refresh_token()
             if refresh_token:
@@ -209,11 +209,15 @@ def play_msg():
                     current_user.clear_tokens()
                     return redirect(url_for('sb_login'))
                 current_user.set_access_token(access_token)
-                an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'])
+                an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'], volume=requested_msg['volume'])
             else:
                 return redirect(url_for('sb_login'))
 
         logger.debug(an_res.json())
+
+        # update the preferred volume 
+        if requested_msg['volume'] != current_user.preferred_volume:
+            current_user.set_preferred_volume(requested_msg['volume'])
 
         # tell the browser all was fine
         return "", 204

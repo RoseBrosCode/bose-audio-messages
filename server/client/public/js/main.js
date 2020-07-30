@@ -73,63 +73,68 @@ function notPressingDown(e) {
     e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-sending.png";
 
     // Stop recording
-    recorder.stop().getMp3().then(function([buffer, blob]){
-        // Append prefix to blob
-        var finalBlob = new Blob([prefixBlob, blob], { type: blob.type });
+    var stopFunction = function() {
+        recorder.stop().getMp3().then(function ([buffer, blob]) {
+            // Append prefix to blob
+            var finalBlob = new Blob([prefixBlob, blob], { type: blob.type });
 
-        // Upload to S3
-        var uuid = generateUUID();
-        // bam_msg_ prefixed objects are cleaned up after 1 day
-        filename = "bam_msg_" + uuid + ".mp3";
-        var upload = new AWS.S3.ManagedUpload({
-            params: {
-                Bucket: "bose-audio-messages-demo",
-                Key: filename,
-                Body: finalBlob,
-                ACL: "public-read"
-            }
-        });
-
-        upload.promise().then(
-            function (data) {
-                console.log("upload success! URL: ", data.Location);
-                console.log("product to sent to: ", activeProduct.id);
-
-                var playUrl = window.serverRoot + "send";
-
-                var message = {
-                    "origin": "BAM Web App",
-                    "key": filename,
-                    "target_product": activeProduct.id,
-                    "url": data.Location,
-                    "volume": volumeSlider.slider('getValue')
+            // Upload to S3
+            var uuid = generateUUID();
+            // bam_msg_ prefixed objects are cleaned up after 1 day
+            filename = "bam_msg_" + uuid + ".mp3";
+            var upload = new AWS.S3.ManagedUpload({
+                params: {
+                    Bucket: "bose-audio-messages-demo",
+                    Key: filename,
+                    Body: finalBlob,
+                    ACL: "public-read"
                 }
-                console.log(message);
-                fetch(playUrl, {
-                    method: 'POST',
-                    body: JSON.stringify(message),
-                    headers: new Headers({
-                        'content-type': 'application/json'
-                    })
+            });
 
-                }).then(() => {
-                    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+            upload.promise().then(
+                function (data) {
+                    console.log("upload success! URL: ", data.Location);
+                    console.log("product to sent to: ", activeProduct.id);
 
-                    setTimeout(() => {
-                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
-                    }, 5000);
-                });
+                    var playUrl = window.serverRoot + "send";
 
-            },
-            function (err) {
-                console.log("There was an error uploading the mesage: ", err.message);
-            }
-        );
-    }).catch(function(e) {
-        // Unable to get MP3 audio
-        // TODO: prompt user somehow
-        console.error(e);
-    });
+                    var message = {
+                        "origin": "BAM Web App",
+                        "key": filename,
+                        "target_product": activeProduct.id,
+                        "url": data.Location,
+                        "volume": volumeSlider.slider('getValue')
+                    }
+                    console.log(message);
+                    fetch(playUrl, {
+                        method: 'POST',
+                        body: JSON.stringify(message),
+                        headers: new Headers({
+                            'content-type': 'application/json'
+                        })
+
+                    }).then(() => {
+                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+
+                        setTimeout(() => {
+                            $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
+                        }, 5000);
+                    });
+
+                },
+                function (err) {
+                    console.log("There was an error uploading the mesage: ", err.message);
+                }
+            );
+        }).catch(function (e) {
+            // Unable to get MP3 audio
+            // TODO: prompt user somehow
+            console.error(e);
+        });
+    }
+
+    // Stop after 500ms buffer
+    setTimeout(stopFunction, 500);
 }
 
 // UUID gen
