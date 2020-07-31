@@ -48,7 +48,7 @@
       <p class="mx-auto center mb-1">Currently signed into BAM as <span style="font-weight: bold;">{{ current_user.username }}</span></p>
     </div>
     <div class="row justify-content-center">
-      <p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM Account</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
+      <p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
     </div>
     {% endif %}
     <hr>
