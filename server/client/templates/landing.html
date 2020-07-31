@@ -8,8 +8,27 @@
 
 
 {% block body %}
-    <h1>
-        Landing Page Coming Soon
-    </h1>
-    <a href="{{ url_for('register') }}">Get Started</a>
+  <div class="container px-4">
+    <div class="row justify-content-center">
+      <p class="mx-auto center mb-1" style="font-size: 18px;">
+          Bose Audio Messages, or BAM, lets you record and send audio messages to your Bose Smart Home Family speakers and soundbars.
+      </p>
+    </div>
+    <hr>
+    <div class="row justify-content-center pb-4">
+      <div class="col-md-5">
+          <p style="font-size: 20px; line-height: 1;" class="mx-auto pt-3 center">
+            First time using BAM?<br><br>
+            <a class="btn btn-dark center" style="text-transform: none;" role="button" href="{{ url_for('register') }}">Get Started</a>
+          </p>  
+      </div>
+      <div class="col-md-5">
+          <p style="font-size: 20px; line-height: 1;" class="mx-auto pt-3 center">
+              Been here before?<br><br>
+              <a class="btn btn-dark" style="text-transform: none;" role="button" href="{{ url_for('bam_login') }}">Send Messages</a>
+          </p>
+      </div>
+  </div>
+    
+  </div>
 {% endblock %}

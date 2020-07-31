@@ -8,24 +8,17 @@
 
 
 {% block body %}
-  <div class="container">
-    <div class="row justify-content-center pt-4">
-      <img src='{{ url_for('static', filename='images/bam-logo.png') }}' height="100px" width="100px" />
-    </div>
-    <div class="row justify-content-center pt-4">
-      <h2 style="font-weight: bold;">Bose Audio Messages</h2>
-    </div>
-    <div class="row">
+  <div class="container px-4">
+    <div class="row justify-content-center">
       <p class="mx-auto center" style="font-size: 18px;">
         Tap and hold a product to record a message. Release to send it.
       </p>
     </div>
-    <hr />
+    <hr>
     <div class="row justify-content-center">
       <p>Messages will play at the following volume: </p>
     </div>
-    <br />
-    <div class="row justify-content-center">
+    <div class="row justify-content-center pt-4">
       <input
         type="text"
         name="volume-slider"
@@ -34,13 +27,12 @@
         data-slider-min="0"
         data-slider-max="100"
         data-slider-step="5"
-        data-slider-value="{{ preferred_volume }}"
+        data-slider-value="{{ current_user.preferred_volume }}"
         data-slider-tooltip="always"
       >
     </div>
-    <hr />
-    <br />
-    <div class="row justify-content-center">
+    <hr>
+    <div class="row justify-content-center pt-4">
       <div id="buttons">
         {% for product in products %}
         <div class="row justify-content-center pb-4">
@@ -54,9 +46,6 @@
         </div>
         {% endfor %}
       </div>
-    </div>
-    <div class="row justify-content-center pt-4">
-      <p><a href="{{ url_for('bam_logout') }}">Logout</a> <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a></p>
     </div>
   </div>
 
