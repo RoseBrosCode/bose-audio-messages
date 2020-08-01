@@ -93,7 +93,7 @@
         // Getting the google ID token:
         var id_token = googleUser.getAuthResponse().id_token;
         console.log("ID Token: " + id_token);
-        fetch("{{ url_for('register') }}", {
+        fetch("{{ url_for('google_register') }}", {
             method: 'POST',
             body: JSON.stringify({
                 "g_token": id_token

@@ -147,6 +147,7 @@ class User(UserMixin):
                 # Return user
                 return User.from_dict(user_dict)
         except (LockError, ConnectionError):
+            logger.debug(LockError)
             logger.error(f"unable to create_user, retries remaining = {retries}")
             if retries > 0:
                 return User.create_user(username, password, retries=retries-1)
@@ -159,6 +160,7 @@ class User(UserMixin):
     def username_exists(username, retries=1):
         # Case insensitive usernames
         username_lower = username.lower()
+        logger.debug("in username exists")
 
         with db.lock("user_lock", blocking_timeout=1):
             try:
