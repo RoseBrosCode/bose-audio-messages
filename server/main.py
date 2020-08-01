@@ -26,7 +26,7 @@ dictConfig({
 from switchboard import get_products, refresh_sb_token, send_audio_notification
 from util import b64encode_str
 from constants import *
-from user import User, google_bp
+from user import User, validate_google_user
 from forms import LoginForm, RegistrationForm
 from images import get_product_image_name_and_filenames
 
@@ -51,10 +51,10 @@ login_manager = LoginManager()
 login_manager.login_view = 'bam_login'
 login_manager.init_app(app)
 
-# Setup google flask-dance
-app.config["GOOGLE_OAUTH_CLIENT_ID"] = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
-app.config["GOOGLE_OAUTH_CLIENT_SECRET"] = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
-app.register_blueprint(google_bp, url_prefix="/login")
+# # Setup google flask-dance
+# app.config["GOOGLE_OAUTH_CLIENT_ID"] = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+# app.config["GOOGLE_OAUTH_CLIENT_SECRET"] = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+# app.register_blueprint(google_bp, url_prefix="/login")
 
 # Get logger
 logger = logging.getLogger(FLASK_NAME)
@@ -82,38 +82,86 @@ def landing():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('sb_login'))
     form = RegistrationForm()
-    if form.validate_on_submit():
-        user = User.create_user(form.username.data, form.password.data)
-        logger.info(f"created user: {user}")
-        login_user(user, remember=True)
-        return redirect(url_for('sb_login'))
-    return render_template('register.html', form=form)
+    if request.method == 'POST':
+        payload = request.get_json() 
+        if payload is not None and payload['g_token'] is not None: # if there's a google token
+            google_email = validate_google_user(payload['g_token'])
+            logger.debug(f"validated user email: {google_email}")
+            user = User.create_user(google_email, provider_access_token=payload['g_token'])
+            logger.info(f"created user: {user}")
+            login_user(user, remember=True)
+            return redirect(url_for('sb_login'))
+
+        elif payload is not None and payload['fb_token'] is not None: # if there's a facebook token
+            logger.debug("Facebook not yet implemented...")
+            return redirect(url_for('register'))
+
+        elif form.validate_on_submit(): # If user submitted a registration form, attempt to register them and log them in
+            user = User.create_user(form.username.data, form.password.data)
+            logger.info(f"created user: {user}")
+            login_user(user, remember=True)
+            return redirect(url_for('sb_login'))
+        
+        else:
+            logger.debug("Unknown registration error.")
+            return redirect(url_for('register'))
+
+    else:
+        # If user is logged in, see if they're logged into Switchboard
+        if current_user.is_authenticated:
+            return redirect(url_for('sb_login'))
+
+        # Serve login page if not already logged in
+        return render_template('register.html', form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def bam_login():
-    # If user is login, see if they're logged into Switchboard
-    if current_user.is_authenticated:
-        return redirect(url_for('sb_login'))
-
-    # If user submitted a login form, attempt to log them in
     form = LoginForm()
-    if form.validate_on_submit():
-        user = User.get_user_by_username(form.username.data)
-        if user is None:
-            flash("Username not found.")
-            return redirect(url_for('bam_login'))
-        if not user.check_password(form.password.data):
-            flash("Incorrect password.")
-            return redirect(url_for('bam_login'))
-        login_user(user, remember=True)
-        return redirect(url_for('sb_login'))
+    if request.method == 'POST':
+        payload = request.get_json() 
+        
+        if payload is not None and payload['g_token'] is not None: # if there's a google token
+            google_email = validate_google_user(payload['g_token'])
+            user = User.get_user_by_username(google_email)
+            if user is None:
+                logger.info("Google login attempted when not registered; redirecting to register.")
+                return redirect(url_for('register'), code=307)
 
-    # Serve login page if not already logged in
-    return render_template('login.html', form=form)
+            login_user(user, remember=True)
+            return redirect(url_for('sb_login'))
+            
+        elif payload is not None and payload['fb_token'] is not None: # if there's a facebook token
+            logger.debug("Facebook not yet implemented...")
+            return redirect(url_for('bam_login'))
+
+        elif form.validate_on_submit(): # If user submitted a login form, attempt to log them in
+            user = User.get_user_by_username(form.username.data)
+            if user is None:
+                flash("Username not found.")
+                return redirect(url_for('bam_login'))
+            if not user.check_password(form.password.data):
+                flash("Incorrect password.")
+                return redirect(url_for('bam_login'))
+
+            login_user(user, remember=True)
+            return redirect(url_for('sb_login'))
+        
+        else:
+            flash("Unknown login error.")
+            logger.debug("Unknown login error.")
+            return redirect(url_for('bam_login'))
+        
+    else:
+        # If user is logged in, see if they're logged into Switchboard
+        if current_user.is_authenticated:
+            return redirect(url_for('sb_login'))
+
+        # Serve login page if not already logged in
+        return render_template('login.html', form=form)
+
+    
 
 @app.route('/logout/bam')
 def bam_logout():

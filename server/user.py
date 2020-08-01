@@ -8,16 +8,19 @@ from flask_login import UserMixin, login_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from redis.exceptions import LockError
 from cryptography.fernet import Fernet, InvalidToken
-from flask_dance.contrib.google import make_google_blueprint, google
-from flask_dance.consumer import oauth_authorized, oauth_error
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
+# from flask_dance.contrib.google import make_google_blueprint, google
+# from flask_dance.consumer import oauth_authorized, oauth_error
 
 from constants import *
 
 
 logger = logging.getLogger(FLASK_NAME)
 
-# create google flask-dance bp
-google_bp = make_google_blueprint(scope=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"])
+# # create google flask-dance bp
+# google_bp = make_google_blueprint(scope=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"])
 
 # Initialize Redis connection
 db = redis.Redis.from_url(os.environ.get("REDIS_URL"))
@@ -99,9 +102,11 @@ class User(UserMixin):
         """Creates a new user and stores it in Redis."""
         # Case insensitive usernames
         username_lower = username.lower()
+        logger.debug(f"username_lower: {username_lower}")
 
         try:
             with db.lock("user_lock", blocking_timeout=1):
+                logger.debug("got past lock")
                 # Ensure username is unique
                 if db.hget("users:", username_lower):
                     logger.warning(f"username {username_lower} already exists")
@@ -133,6 +138,7 @@ class User(UserMixin):
                     "encrypted_provider_access_token": encrypted_provider_access_token,
                     "preferred_volume": DEFAULT_PREFERRED_VOLUME
                 }
+                logger.debug(f"user_dict before create: {user_dict}")
                 pipeline.hset(f"user:{user_id}", mapping=user_dict)
 
                 # Execute transaction
@@ -252,45 +258,56 @@ class User(UserMixin):
             return False
         return True
 
-# create/login local user on successful OAuth login
-@oauth_authorized.connect_via(google_bp)
-def google_logged_in(blueprint, token):
-    if not token:
-        flash("Failed to log in.", category="error")
-        return False
+def validate_google_user(google_token):
+    """ validates the google token and returns the email address for the user """
+    idinfo = id_token.verify_oauth2_token(google_token, requests.Request(), os.environ.get("GOOGLE_OAUTH_CLIENT_ID"))
+    logger.debug(idinfo)
 
-    token_string = str(token)
-
-    # Get OIDC userinfo
-    resp = blueprint.session.get("/oauth2/v1/userinfo")
-    if not resp.ok:
-        msg = "Failed to fetch user info."
-        flash(msg, category="error")
-        return False
-
-    info = resp.json()
-    logger.debug(f"Google userinfo response: {info}") 
-    user_email = info["email"]
-
-    user = User.get_user_by_username(user_email)
-    if user:
-        user.set_provider_access_token(token_string)
-        login_user(user)
-        return False
-
-    # Create a new local user account for this user
-    user = User.create_user(user_email, provider_access_token=token_string)
-    login_user(user)
-
-    # Disable Flask-Dance's default behavior for saving the OAuth token
-    return False
+    # ID token is valid. Get the user's Google Account email from the decoded token.
+    user_email = idinfo['email']
+    return user_email
 
 
-# notify on OAuth provider error
-@oauth_error.connect_via(google_bp)
-def google_error(blueprint, message, response):
-    msg = "OAuth error from {name}! message={message} response={response}".format(
-        name=blueprint.name, message=message, response=response
-    )
-    flash(msg, category="error")
+
+# # create/login local user on successful OAuth login
+# @oauth_authorized.connect_via(google_bp)
+# def google_logged_in(blueprint, token):
+#     if not token:
+#         flash("Failed to log in.", category="error")
+#         return False
+
+#     token_string = str(token)
+
+#     # Get OIDC userinfo
+#     resp = blueprint.session.get("/oauth2/v1/userinfo")
+#     if not resp.ok:
+#         msg = "Failed to fetch user info."
+#         flash(msg, category="error")
+#         return False
+
+#     info = resp.json()
+#     logger.debug(f"Google userinfo response: {info}") 
+#     user_email = info["email"]
+
+#     user = User.get_user_by_username(user_email)
+#     if user:
+#         user.set_provider_access_token(token_string)
+#         login_user(user)
+#         return False
+
+#     # Create a new local user account for this user
+#     user = User.create_user(user_email, provider_access_token=token_string)
+#     login_user(user)
+
+#     # Disable Flask-Dance's default behavior for saving the OAuth token
+#     return False
+
+
+# # notify on OAuth provider error
+# @oauth_error.connect_via(google_bp)
+# def google_error(blueprint, message, response):
+#     msg = "OAuth error from {name}! message={message} response={response}".format(
+#         name=blueprint.name, message=message, response=response
+#     )
+#     flash(msg, category="error")
     
