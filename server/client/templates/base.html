@@ -6,6 +6,7 @@
   <title>Bose Audio Messages</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="google-signin-client_id" content="890422466742-vchhgjnvehtpn7lasl03arlnrtjco9c7.apps.googleusercontent.com">
 
   <!-- CSS imports -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
@@ -16,6 +17,7 @@
   <!-- custom CSS -->
   <link rel='stylesheet' href="{{ url_for('static', filename='stylesheets/style.css') }}" />
   <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+
   {% endblock %}
 </head>
 
@@ -30,6 +32,60 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.713.0.min.js"></script>
   <script src="https://unpkg.com/mic-recorder-to-mp3@2.2.1/dist/index.min.js"></script>
+  <script>
+    function onGoogleFailure(error){
+        console.log("google failure")
+        console.log(error);
+    }
+    function googleInit() {
+        gapi.load('auth2', function() {
+            gapi.auth2.init({}).then(function(auth2) {
+              var signin_needed = document.body.contains(document.getElementById('googleBtn'));
+              console.log('is signin needed?', signin_needed);  
+              if (signin_needed) {
+                element = document.getElementById('googleBtn');
+                auth2.attachClickHandler(element, {
+                    scope: 'profile email',
+                    prompt: 'select_account'
+                }, onSignIn, onGoogleFailure);
+              }
+            }, onGoogleFailure);
+        });
+    }
+    function onSignIn(googleUser) {
+        // Getting the google ID token:
+        var id_token = googleUser.getAuthResponse().id_token;
+        console.log("ID Token: " + id_token);
+        fetch("{{ url_for('google_auth') }}", {
+            method: 'POST',
+            body: JSON.stringify({
+                "g_token": id_token
+            }),
+            headers: new Headers({
+                'content-type': 'application/json'
+            })
+        }).then(resp => {
+            if (resp.redirected) {
+                window.location.replace(resp.url);
+            }
+        }).catch(function(err) {
+            console.log(err);
+        });
+    }
+    
+  </script>
+  <script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId            : '210242747075512',
+        autoLogAppEvents : true,
+        xfbml            : true,
+        version          : 'v7.0'
+      });
+    };
+  </script>
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
   {% block topscripts %}{% endblock %}
   <div class="container">
     <div class="row justify-content-center pt-4">
@@ -44,18 +100,46 @@
   {% block body %}{% endblock %}
   <div class="container">
     {% if current_user.username is defined %}
-    <div class="row justify-content-center pt-5">
-      <p class="mx-auto center mb-1">Currently signed into BAM as <span style="font-weight: bold;">{{ current_user.username }}</span></p>
-    </div>
-    <div class="row justify-content-center">
-      <p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
-    </div>
+      <div class="row justify-content-center pt-5">
+        <p class="mx-auto center mb-1">Currently signed into BAM as <span style="font-weight: bold;">{{ current_user.username }}</span></p>
+      </div>
+      <div class="row justify-content-center">
+        <p class="mx-auto center"><a href="#" onclick="signOut();">Sign out of BAM</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
+      </div>
     {% endif %}
     <hr>
     <div class="row justify-content-center">
       <p class="mx-auto center">A RoseBrosCode project.</p>
     </div>
   </div>
+  {% if current_user.username is defined %}
+    {% if current_user.acct_type is equalto "bam" %}
+      <script>
+        // bam only logout
+        function signOut() {
+          window.location.href = "{{ url_for('bam_logout') }}"
+        }
+      </script>
+    {% endif %}
+    {% if current_user.acct_type is equalto "google" %}
+      <script>
+        // google then bam logout
+        function signOut() {
+          var auth2 = gapi.auth2.getAuthInstance();
+          auth2.signOut().then(function () {
+            console.log('User signed out of google.');
+            window.location.href = "{{ url_for('bam_logout') }}"
+          });
+        }  
+      </script>
+    {% endif %}
+    {% if current_user.acct_type is equalto "fb" %}
+      <script>
+        // fb then bam logout
+        // TODO
+      </script>
+    {% endif %}
+  {% endif %}
   {% block bottomscripts %}{% endblock %}
 </body>
 

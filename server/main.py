@@ -26,7 +26,7 @@ dictConfig({
 from switchboard import get_products, refresh_sb_token, send_audio_notification
 from util import b64encode_str
 from constants import *
-from user import User, validate_google_user
+from user import User, validate_google_user, repair_acct_type
 from forms import LoginForm, RegistrationForm
 from images import get_product_image_name_and_filenames
 
@@ -50,11 +50,6 @@ app.secret_key = os.environ['SESSION_KEY']
 login_manager = LoginManager()
 login_manager.login_view = 'bam_login'
 login_manager.init_app(app)
-
-# # Setup google flask-dance
-# app.config["GOOGLE_OAUTH_CLIENT_ID"] = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
-# app.config["GOOGLE_OAUTH_CLIENT_SECRET"] = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
-# app.register_blueprint(google_bp, url_prefix="/login")
 
 # Get logger
 logger = logging.getLogger(FLASK_NAME)
@@ -92,30 +87,6 @@ def register():
         return redirect(url_for('sb_login'))
     return render_template('register.html', form=form)
 
-@app.route('/register/google', methods=['POST'])
-def google_register():
-    payload = request.get_json() 
-    if payload is not None and payload['g_token'] is not None: # if there's a google token
-        google_email = validate_google_user(payload['g_token'])
-        logger.debug(f"validated user email: {google_email}")
-        user = User.create_user(google_email, provider_access_token=payload['g_token'])
-        logger.info(f"created user: {user}")
-        login_user(user, remember=True)
-        return redirect(url_for('sb_login'))
-    else:
-        logger.debug("Unknown google registration error.")
-        return redirect(url_for('register'))
-
-@app.route('/register/fb', methods=['POST'])
-def fb_register():
-    payload = request.get_json()
-    if payload is not None and payload['fb_token'] is not None: # if there's a facebook token
-        logger.debug("Facebook not yet implemented...")
-        return redirect(url_for('register'))
-    else:
-        logger.debug("Unknown facebook registration error.")
-        return redirect(url_for('register'))
-
 @app.route('/login', methods=['GET', 'POST'])
 def bam_login():
     # If user is login, see if they're logged into Switchboard
@@ -132,34 +103,57 @@ def bam_login():
         if not user.check_password(form.password.data):
             flash("Incorrect password.")
             return redirect(url_for('bam_login'))
+        if user.acct_type is None:
+            user = repair_acct_type(user)
         login_user(user, remember=True)
         return redirect(url_for('sb_login'))
 
     # Serve login page if not already logged in
     return render_template('login.html', form=form)
 
-@app.route('/login/google', methods=['POST'])
-def google_login():
+@app.route('/auth/google', methods=['POST'])
+def google_auth():
     payload = request.get_json() 
     if payload is not None and payload['g_token'] is not None: # if there's a google token
         google_email = validate_google_user(payload['g_token'])
-        user = User.get_user_by_username(google_email)
-        if user is None:
-            logger.info("Google login attempted when not registered; redirecting to register.")
-            return redirect(url_for('register'), code=307)
-    else:
-        logger.debug("Unknown google login error.")
-        return redirect(url_for('bam_login'))
+        logger.debug(f"validated google user email: {google_email}")
+        user = User.get_user_by_username(google_email) 
+        # check to see if the user already exists, log them in if yes, unless it's a BAM acct
+        if user is not None:
+            if user.acct_type is None:
+                user = repair_acct_type(user)
 
-@app.route('/login/fb', methods=['POST'])
-def fb_login():
+            if user.acct_type == "bam":
+                logger.warn("username already taken by a BAM acct")
+                flash("User already exists with BAM credentials, please sign in with those")
+                return redirect(url_for('bam_login'))
+
+            logger.debug("logging in already registered google user")
+            login_user(user, remember=True)
+            return redirect(url_for('sb_login'))
+
+        # otherwise register the new user and log them in
+        new_user = User.create_user(google_email, provider_access_token=payload['g_token'], acct_type="google")
+        if new_user is None:
+            logger.debug("Unknown google registration error with None user on creation.")
+            return redirect(url_for('register'))
+
+        logger.info(f"created google user: {new_user}")
+        login_user(new_user, remember=True)
+        return redirect(url_for('sb_login'))
+
+    logger.debug("Unknown google auth error.")
+    return redirect(url_for('register'))
+
+@app.route('/auth/fb', methods=['POST'])
+def fb_auth():
     payload = request.get_json()
     if payload is not None and payload['fb_token'] is not None: # if there's a facebook token
         logger.debug("Facebook not yet implemented...")
-        return redirect(url_for('bam_login'))
+        return redirect(url_for('register'))
     else:
-        logger.debug("Unknown facebook login error.")
-        return redirect(url_for('bam_login'))
+        logger.debug("Unknown facebook auth error.")
+        return redirect(url_for('register'))
 
 @app.route('/logout/bam')
 def bam_logout():
@@ -176,8 +170,11 @@ def sb_login():
     client_id = os.environ['SB_CLIENT_ID']
     redirect_url = os.environ['SB_REDIRECT_URL']
 
+    if current_user.acct_type is None:
+        repair_acct_type(current_user, silent=True)
+
     # First time? Get the login button
-    return render_template('bose-link.html', client_id=client_id, redirect_url=redirect_url, current_user=current_user)
+    return render_template('bose-link.html', client_id=client_id, redirect_url=redirect_url)
 
 @app.route('/logout/bose')
 @login_required
@@ -235,8 +232,11 @@ def app_home():
         if current_user.preferred_volume is None:
             current_user.set_preferred_volume(DEFAULT_PREFERRED_VOLUME)
 
+        if current_user.acct_type is None:
+            repair_acct_type(current_user, silent=True)
+
         # List the products
-        return render_template('app.html', products=client_products, image_filenames=set(image_filenames), current_user=current_user)
+        return render_template('app.html', products=client_products, image_filenames=set(image_filenames))
                 
     else:
         return redirect(url_for('sb_login'))

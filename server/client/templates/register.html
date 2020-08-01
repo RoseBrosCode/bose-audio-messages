@@ -4,8 +4,6 @@
     <!-- super pulls in the parent's head block -->
     {{ super() }} 
     <!-- can add additional head here below here before the endblock -->
-    <meta name="google-signin-client_id" content="890422466742-vchhgjnvehtpn7lasl03arlnrtjco9c7.apps.googleusercontent.com">
-    <script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
 {% endblock %}
 
 {% block body %}
@@ -17,17 +15,17 @@
         </div>
         <div class="row justify-content-center">
             <p class="mx-auto center" style="font-size: 14px;">
-                Already have a BAM account? <a href="{{ url_for('bam_login') }}">Click here to sign in</a>
+                Already have a BAM account? <a href="{{ url_for('bam_login') }}">Tap here to sign in</a>
             </p>
         </div>
         <div class="row justify-content-center">
             <p class="mx-auto center">
-                A BAM account lets you easily send BAMs from different devices. We recommend using a social login, so you don't need to remember another password.
+                A BAM account lets you send BAMs from different devices. We recommend using a social login, so you don't need to remember another password.
             </p>
         </div>
         <div class="row justify-content-center">
-            <div class="col-md-4">
-                <div id="googleBtn" class="g-signin2 mx-auto center" data-longtitle="true" data-theme="dark"></div>
+            <div class="col-md-4 pb-4">
+                <div id="googleBtn" class="g-signin2" data-longtitle="true" data-theme="dark"></div>
             </div>
             <div class="col-md-4">
                 <p class="mx-auto center">
@@ -43,7 +41,7 @@
         </div>
         <div class="row justify-content-center">
             <p class="mx-auto center" style="font-size: 14px;">
-                (worth noting, we don't have a password reset function yet...)
+                (note, we don't have a password reset function yet...)
             </p>
         </div>
         <div class="row justify-content-center">
@@ -75,36 +73,4 @@
         </div>
         
     </div>
-{% endblock %}
-
-{% block bottomscripts %}
-<script>
-    function googleInit() {
-        gapi.load('auth2', function() {
-            auth2 = gapi.auth2.init({});
-            element = document.getElementById('googleBtn');
-            auth2.attachClickHandler(element, {
-                scope: 'profile email',
-                prompt: 'select_account'
-            }, onSignIn, onFailure);
-        });
-    }
-    function onSignIn(googleUser) {
-        // Getting the google ID token:
-        var id_token = googleUser.getAuthResponse().id_token;
-        console.log("ID Token: " + id_token);
-        fetch("{{ url_for('google_register') }}", {
-            method: 'POST',
-            body: JSON.stringify({
-                "g_token": id_token
-            }),
-            headers: new Headers({
-                'content-type': 'application/json'
-            })
-        });
-    }
-    function onFailure(error){
-        console.log(error)
-    }
-</script>
 {% endblock %}

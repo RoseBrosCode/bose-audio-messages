@@ -11,16 +11,10 @@ from cryptography.fernet import Fernet, InvalidToken
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
-# from flask_dance.contrib.google import make_google_blueprint, google
-# from flask_dance.consumer import oauth_authorized, oauth_error
-
 from constants import *
 
 
 logger = logging.getLogger(FLASK_NAME)
-
-# # create google flask-dance bp
-# google_bp = make_google_blueprint(scope=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"])
 
 # Initialize Redis connection
 db = redis.Redis.from_url(os.environ.get("REDIS_URL"))
@@ -43,11 +37,12 @@ except Exception as e:
 class User(UserMixin):
     """Models a user of BAM."""
 
-    def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, encrypted_refresh_token=None, encrypted_access_token=None, preferred_volume=DEFAULT_PREFERRED_VOLUME):
+    def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, acct_type="bam", encrypted_refresh_token=None, encrypted_access_token=None, preferred_volume=DEFAULT_PREFERRED_VOLUME):
         self.user_id = user_id
         self.username = username
         self.password_hash = password_hash
         self.encrypted_provider_access_token = encrypted_provider_access_token
+        self.acct_type = acct_type
         self.encrypted_refresh_token = encrypted_refresh_token
         self.encrypted_access_token = encrypted_access_token
         self.preferred_volume = preferred_volume
@@ -80,7 +75,7 @@ class User(UserMixin):
                 for key, val in d.items() }
         logger.debug(f"getting user from dict: {d}")
         return User(d.get("user_id", None), d.get("username", None), d.get("password_hash", None), d.get("encrypted_provider_access_token", None),
-                    d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None), d.get("preferred_volume", None))
+                    d.get("acct_type", None), d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None), d.get("preferred_volume", None))
 
     @staticmethod
     def get_user_by_username(username, retries=1):
@@ -98,7 +93,7 @@ class User(UserMixin):
         return None
 
     @staticmethod
-    def create_user(username, password=None, provider_access_token=None, retries=1):
+    def create_user(username, password=None, provider_access_token=None, acct_type="bam", retries=1):
         """Creates a new user and stores it in Redis."""
         # Case insensitive usernames
         username_lower = username.lower()
@@ -106,7 +101,6 @@ class User(UserMixin):
 
         try:
             with db.lock("user_lock", blocking_timeout=1):
-                logger.debug("got past lock")
                 # Ensure username is unique
                 if db.hget("users:", username_lower):
                     logger.warning(f"username {username_lower} already exists")
@@ -136,9 +130,9 @@ class User(UserMixin):
                     "username": username_lower,
                     "password_hash": password_hash,
                     "encrypted_provider_access_token": encrypted_provider_access_token,
+                    "acct_type": acct_type,
                     "preferred_volume": DEFAULT_PREFERRED_VOLUME
                 }
-                logger.debug(f"user_dict before create: {user_dict}")
                 pipeline.hset(f"user:{user_id}", mapping=user_dict)
 
                 # Execute transaction
@@ -147,7 +141,6 @@ class User(UserMixin):
                 # Return user
                 return User.from_dict(user_dict)
         except (LockError, ConnectionError):
-            logger.debug(LockError)
             logger.error(f"unable to create_user, retries remaining = {retries}")
             if retries > 0:
                 return User.create_user(username, password, retries=retries-1)
@@ -240,6 +233,17 @@ class User(UserMixin):
             return False
         return True
 
+    def set_acct_type(self, acct_type, retries=1):
+        self.acct_type = acct_type
+        try:
+            db.hset(f"user:{self.user_id}", "acct_type", self.acct_type)
+        except ConnectionError:
+            logger.error(f"unable to set_acct_type, retries remaining = {retries}")
+            if retries > 0:
+                return self.set_acct_type(acct_type, retries=retries-1)
+            return False
+        return True
+
     def clear_tokens(self, retries=1):
         try:
             # Create transaction
@@ -269,47 +273,17 @@ def validate_google_user(google_token):
     user_email = idinfo['email']
     return user_email
 
-
-
-# # create/login local user on successful OAuth login
-# @oauth_authorized.connect_via(google_bp)
-# def google_logged_in(blueprint, token):
-#     if not token:
-#         flash("Failed to log in.", category="error")
-#         return False
-
-#     token_string = str(token)
-
-#     # Get OIDC userinfo
-#     resp = blueprint.session.get("/oauth2/v1/userinfo")
-#     if not resp.ok:
-#         msg = "Failed to fetch user info."
-#         flash(msg, category="error")
-#         return False
-
-#     info = resp.json()
-#     logger.debug(f"Google userinfo response: {info}") 
-#     user_email = info["email"]
-
-#     user = User.get_user_by_username(user_email)
-#     if user:
-#         user.set_provider_access_token(token_string)
-#         login_user(user)
-#         return False
-
-#     # Create a new local user account for this user
-#     user = User.create_user(user_email, provider_access_token=token_string)
-#     login_user(user)
-
-#     # Disable Flask-Dance's default behavior for saving the OAuth token
-#     return False
-
-
-# # notify on OAuth provider error
-# @oauth_error.connect_via(google_bp)
-# def google_error(blueprint, message, response):
-#     msg = "OAuth error from {name}! message={message} response={response}".format(
-#         name=blueprint.name, message=message, response=response
-#     )
-#     flash(msg, category="error")
+def repair_acct_type(user, silent=False):
+    """ takes a user without an acct_type, sets the right one, and returns the updated user """
+    if user.encrypted_provider_access_token:
+        user.set_acct_type("google")
+        logger.debug(f"current user acct type set to: {user.acct_type}")
+        if silent:
+            return True
+        return user
     
+    user.set_acct_type("bam")
+    logger.debug(f"current user acct type set to: {user.acct_type}")
+    if silent:
+        return True
+    return user
