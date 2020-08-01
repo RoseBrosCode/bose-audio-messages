@@ -3,6 +3,7 @@
 
 var buttons = document.querySelector("#buttons");
 var recorder;
+var streamRecorder;
 var filename;
 var activeProduct;
 var prefixBlob;
@@ -46,6 +47,15 @@ window.onload = function () {
         }).then(function(blob) {
             prefixBlob = blob;
         });
+
+    // Connect to Socket.io server
+    window.socket = io();
+    socket.on('connect', function () {
+        console.log("socket.io connected");
+    });
+
+    // Setup stream recorder
+    streamRecorder = new StreamRecorder(window.socket);
 };
 
 function preventMenu(e) {
@@ -57,10 +67,40 @@ function preventMenu(e) {
 }
 
 function pressingDown(e) {
+    activeProduct = e.target;
     e.preventDefault();
     e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-getting-ready.png";
-    recorder.start().then(function() {
+    // recorder.start().then(function() {
+    //     e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
+    // });
+    streamRecorder.start().then(function() {
         e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
+
+        var playUrl = window.serverRoot + "send";
+        // var streamUrl = window.serverRoot + "stream/" + streamRecorder.recordingID;
+        var streamUrl = "https://0816ddf57d06.ngrok.io/stream/" + streamRecorder.recordingID;
+
+        setTimeout(function(){
+            var message = {
+                "target_product": activeProduct.id,
+                "url": streamUrl
+            }
+            fetch(playUrl, {
+                method: 'POST',
+                body: JSON.stringify(message),
+                headers: new Headers({
+                    'content-type': 'application/json'
+                })
+
+            }).then(() => {
+                console.log("streaming...");
+                // $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+
+                // setTimeout(() => {
+                //     $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
+                // }, 5000);
+            });
+        }, 2000);
     });
 }
 
@@ -68,63 +108,70 @@ function notPressingDown(e) {
     activeProduct = e.target;
     e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-sending.png";
 
+    streamRecorder.stop();
+    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+
+    setTimeout(() => {
+        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
+    }, 5000);
+
     // Stop recording
-    recorder.stop().getMp3().then(function([buffer, blob]){
-        // Append prefix to blob
-        var finalBlob = new Blob([prefixBlob, blob], { type: blob.type });
+    // recorder.stop().getMp3().then(function([buffer, blob]){
+    //     // Append prefix to blob
+    //     var finalBlob = new Blob([prefixBlob, blob], { type: blob.type });
 
-        // Upload to S3
-        var uuid = generateUUID();
-        // bam_msg_ prefixed objects are cleaned up after 1 day
-        filename = "bam_msg_" + uuid + ".mp3";
-        var upload = new AWS.S3.ManagedUpload({
-            params: {
-                Bucket: "bose-audio-messages-demo",
-                Key: filename,
-                Body: finalBlob,
-                ACL: "public-read"
-            }
-        });
+    //     // Upload to S3
+    //     var uuid = generateUUID();
+    //     // bam_msg_ prefixed objects are cleaned up after 1 day
+    //     filename = "bam_msg_" + uuid + ".mp3";
+    //     var upload = new AWS.S3.ManagedUpload({
+    //         params: {
+    //             Bucket: "bose-audio-messages-demo",
+    //             Key: filename,
+    //             Body: finalBlob,
+    //             ACL: "public-read"
+    //         }
+    //     });
 
-        upload.promise().then(
-            function (data) {
-                console.log("upload success! URL: ", data.Location);
-                console.log("product to sent to: ", activeProduct.id);
+    //     upload.promise().then(
+    //         function (data) {
+    //             console.log("upload success! URL: ", data.Location);
+    //             console.log("product to sent to: ", activeProduct.id);
 
-                var playUrl = window.serverRoot + "send";
+    //             var playUrl = window.serverRoot + "send";
 
-                var message = {
-                    "origin": "BAM Web App",
-                    "key": filename,
-                    "target_product": activeProduct.id,
-                    "url": data.Location
-                }
-                console.log(message);
-                fetch(playUrl, {
-                    method: 'POST',
-                    body: JSON.stringify(message),
-                    headers: new Headers({
-                        'content-type': 'application/json'
-                    })
+    //             var message = {
+    //                 "origin": "BAM Web App",
+    //                 "key": filename,
+    //                 "target_product": activeProduct.id,
+    //                 "url": data.Location
+    //             }
+    //             console.log(message);
+    //             fetch(playUrl, {
+    //                 method: 'POST',
+    //                 body: JSON.stringify(message),
+    //                 headers: new Headers({
+    //                     'content-type': 'application/json'
+    //                 })
 
-                }).then(() => {
-                    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+    //             }).then(() => {
+    //                 $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
 
-                    setTimeout(() => {
-                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
-                    }, 5000);
-                });
+    //                 setTimeout(() => {
+    //                     $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
+    //                 }, 5000);
+    //             });
 
-            },
-            function (err) {
-                console.log("There was an error uploading the mesage: ", err.message);
-            }
-        );
-    }).catch(function(e) {
-        // Unable to get MP3 audio
-        // TODO: prompt user somehow
-        console.error(e);
-    });
+    //         },
+    //         function (err) {
+    //             console.log("There was an error uploading the mesage: ", err.message);
+    //         }
+    //     );
+    // }).catch(function(e) {
+    //     // Unable to get MP3 audio
+    //     // TODO: prompt user somehow
+    //     console.error(e);
+    // });
 }
 
 // UUID gen

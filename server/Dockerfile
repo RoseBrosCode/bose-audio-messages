@@ -2,8 +2,8 @@ FROM python:3.8-slim-buster
 
 # Setup gunicorn env vars
 ENV GUNICORN_DIRECTORY=/gunicorn \
-    GUNICORN_WORKERS=3 \
-    GUNICORN_WORKER_CLASS=gevent \
+    GUNICORN_WORKERS=1 \
+    GUNICORN_WORKER_CLASS=geventwebsocket.gunicorn.workers.GeventWebSocketWorker \
     GUNICORN_BACKLOG=2048 \
     GUNICORN_BIND=0.0.0.0:80 \
     APP_MODULE=main:app \
