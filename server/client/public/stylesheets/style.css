@@ -5,7 +5,13 @@ body {
 }
 
 a {
-  color: #00B7FF;
+  color: #999999;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+a:hover {
+  text-decoration: none;
 }
 
 .center {

@@ -30,8 +30,33 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.713.0.min.js"></script>
   <script src="https://unpkg.com/mic-recorder-to-mp3@2.2.1/dist/index.min.js"></script>
-
+  {% block topscripts %}{% endblock %}
+  <div class="container">
+    <div class="row justify-content-center pt-4">
+      <a href="{{ url_for('landing') }}">
+        <img src="{{ url_for('static', filename='images/bam-logo.png') }}" height="100px" width="100px" />
+      </a>
+    </div>
+    <div class="row justify-content-center pt-4">
+      <h2 style="font-weight: bold;">Bose Audio Messages</h2>
+    </div>
+  </div>
   {% block body %}{% endblock %}
+  <div class="container">
+    {% if current_user.username is defined %}
+    <div class="row justify-content-center pt-5">
+      <p class="mx-auto center mb-1">Currently signed into BAM as <span style="font-weight: bold;">{{ current_user.username }}</span></p>
+    </div>
+    <div class="row justify-content-center">
+      <p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
+    </div>
+    {% endif %}
+    <hr>
+    <div class="row justify-content-center">
+      <p class="mx-auto center">A RoseBrosCode project.</p>
+    </div>
+  </div>
+  {% block bottomscripts %}{% endblock %}
 </body>
 
 </html>

@@ -115,7 +115,7 @@ def bam_login():
     # Serve login page if not already logged in
     return render_template('login.html', form=form)
 
-@app.route('/logout')
+@app.route('/logout/bam')
 def bam_logout():
     logout_user()
     return redirect(url_for('bam_login'))
@@ -131,7 +131,14 @@ def sb_login():
     redirect_url = os.environ['SB_REDIRECT_URL']
 
     # First time? Get the login button
-    return render_template('bose-link.html', client_id=client_id, redirect_url=redirect_url)
+    return render_template('bose-link.html', client_id=client_id, redirect_url=redirect_url, current_user=current_user)
+
+@app.route('/logout/bose')
+@login_required
+def sb_logout():
+    # Disassociate the Bose Account from the BAM Account
+    current_user.clear_tokens()
+    return redirect(url_for('sb_login'))
 
 @app.route('/auth')
 def auth_redirect():
@@ -179,8 +186,11 @@ def app_home():
                 'image_name': 'eddie-black' # TODO: image_name
             })
         
+        if current_user.preferred_volume is None:
+            current_user.set_preferred_volume(DEFAULT_PREFERRED_VOLUME)
+
         # List the products
-        return render_template('app.html', products=client_products, image_filenames=set(image_filenames), preferred_volume=current_user.preferred_volume)
+        return render_template('app.html', products=client_products, image_filenames=set(image_filenames), current_user=current_user)
                 
     else:
         return redirect(url_for('sb_login'))
