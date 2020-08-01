@@ -186,6 +186,9 @@ def app_home():
                 'image_name': 'eddie-black' # TODO: image_name
             })
         
+        if current_user.preferred_volume is None:
+            current_user.set_preferred_volume(DEFAULT_PREFERRED_VOLUME)
+
         # List the products
         return render_template('app.html', products=client_products, image_filenames=set(image_filenames), current_user=current_user)
                 
