@@ -53,24 +53,24 @@
         });
     }
     function onSignIn(googleUser) {
-        // Getting the google ID token:
-        var id_token = googleUser.getAuthResponse().id_token;
-        console.log("ID Token: " + id_token);
-        fetch("{{ url_for('google_auth') }}", {
-            method: 'POST',
-            body: JSON.stringify({
-                "g_token": id_token
-            }),
-            headers: new Headers({
-                'content-type': 'application/json'
-            })
-        }).then(resp => {
-            if (resp.redirected) {
-                window.location.replace(resp.url);
-            }
-        }).catch(function(err) {
-            console.log(err);
-        });
+      // Getting the google ID token:
+      var id_token = googleUser.getAuthResponse().id_token;
+      console.log("ID Token: " + id_token);
+      fetch("{{ url_for('google_auth') }}", {
+        method: 'POST',
+        body: JSON.stringify({
+            "g_token": id_token
+        }),
+        headers: new Headers({
+            'content-type': 'application/json'
+        })
+      }).then(resp => {
+        if (resp.redirected) {
+            window.location.replace(resp.url);
+        }
+      }).catch(function(err) {
+        console.log(err);
+      });
     }
     
   </script>
@@ -83,6 +83,7 @@
         xfbml            : true,
         version          : 'v7.0'
       });
+      FB.Event.subscribe('auth.statusChange', onFbStatusChange);
     };
   </script>
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
@@ -112,6 +113,38 @@
       <p class="mx-auto center">A RoseBrosCode project.</p>
     </div>
   </div>
+  <script>
+    function onFbStatusChange(response) {
+      if (response.status === 'connected') {
+        // Logged into your webpage and Facebook.
+        console.log(response);
+        fetch("{{ url_for('fb_auth') }}", {
+          method: 'POST',
+          body: JSON.stringify({
+            "fb_token": response.authResponse.accessToken,
+            "fb_user_id": response.authResponse.userID
+        }),
+          headers: new Headers({
+              'content-type': 'application/json'
+          })
+        }).then(resp => {
+          if (resp.redirected) {
+              window.location.replace(resp.url);
+          }
+        }).catch(function(err) {
+          console.log(err);
+        });
+      } else {
+        // The person is not logged into your webpage or we are unable to tell.
+        console.log("facebook error:", response);
+      }    
+    }
+    function testAPI() {
+      FB.api('/me', function(response) {
+        console.log('Successful login for: ' + response.name);
+      });
+    }
+  </script>
   {% if current_user.username is defined %}
     {% if current_user.acct_type is equalto "bam" %}
       <script>
@@ -136,7 +169,13 @@
     {% if current_user.acct_type is equalto "fb" %}
       <script>
         // fb then bam logout
-        // TODO
+        function signOut() {
+          FB.logout(function(response) {
+            // Person is now logged out
+            console.log('User signed out of facebook.');
+            window.location.href = "{{ url_for('bam_logout') }}"
+          });
+        }
       </script>
     {% endif %}
   {% endif %}

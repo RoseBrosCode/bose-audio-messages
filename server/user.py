@@ -1,4 +1,5 @@
 import os
+import requests
 import redis
 import logging
 import uuid
@@ -9,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from redis.exceptions import LockError
 from cryptography.fernet import Fernet, InvalidToken
 from google.oauth2 import id_token
-from google.auth.transport import requests
+from google.auth.transport import requests as g_requests
 
 from constants import *
 
@@ -266,15 +267,45 @@ class User(UserMixin):
 
 def validate_google_user(google_token):
     """ validates the google token and returns the email address for the user """
-    idinfo = id_token.verify_oauth2_token(google_token, requests.Request(), os.environ.get("GOOGLE_OAUTH_CLIENT_ID"))
+    idinfo = id_token.verify_oauth2_token(google_token, g_requests.Request(), os.environ.get("GOOGLE_OAUTH_CLIENT_ID"))
     logger.debug(idinfo)
 
     # ID token is valid. Get the user's Google Account email from the decoded token.
     user_email = idinfo['email']
     return user_email
 
+def validate_facebook_user(fb_token, user_id):
+    """validates the facebook token and returns the email address for the user """
+    fb_graph_host = "https://graph.facebook.com/"    
+    # get app access token
+    app_access_url = fb_graph_host + "oauth/access_token?client_id=" + os.environ.get("FB_OAUTH_CLIENT_ID") + "&client_secret=" + os.environ.get("FB_OAUTH_CLIENT_SECRET") + "&grant_type=client_credentials"
+    app_access_resp = requests.get(app_access_url)
+    app_token = app_access_resp.json()['access_token']
+
+    # fetch info about the supplied user access token
+    token_inspect_url = fb_graph_host + "debug_token?input_token=" + fb_token + "&access_token=" + app_token
+    token_inspect_resp = requests.get(token_inspect_url)
+    token_details = token_inspect_resp.json()
+    logger.debug(f"token details: {token_details['data']}")
+
+    # confirm app ID and user ID match 
+    if token_details['data']['app_id'] == os.environ.get("FB_OAUTH_CLIENT_ID") and token_details['data']['user_id'] == user_id:
+        # use the fb_token (supplied user access token) to get basic user info, return the email address
+        email_url = fb_graph_host + "me/?fields=email&access_token=" + fb_token
+        email_resp = requests.get(email_url)
+        logger.debug(f"email JSON response: {email_resp.json()}")
+        return email_resp.json()['email']
+
+
+    # didn't match, something is up!
+    logger.warning(f"Mismatch on token inspection. Supplied app id was {token_details['data']['app_id']}, expected was {os.environ.get('FB_OAUTH_CLIENT_ID')}. Supplied user_id was {token_details['data']['user_id']}, expected was {user_id}.")
+    return None
+
 def repair_acct_type(user, silent=False):
-    """ takes a user without an acct_type, sets the right one, and returns the updated user """
+    """
+    takes a user without an acct_type, sets the right one, and returns the updated user
+    only covers google and bam because acct_type was implemented before facebook
+    """
     if user.encrypted_provider_access_token:
         user.set_acct_type("google")
         logger.debug(f"current user acct type set to: {user.acct_type}")

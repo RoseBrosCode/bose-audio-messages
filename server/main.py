@@ -26,7 +26,7 @@ dictConfig({
 from switchboard import get_products, refresh_sb_token, send_audio_notification
 from util import b64encode_str
 from constants import *
-from user import User, validate_google_user, repair_acct_type
+from user import User, validate_google_user, repair_acct_type, validate_facebook_user
 from forms import LoginForm, RegistrationForm
 from images import get_product_image_name_and_filenames
 
@@ -124,8 +124,13 @@ def google_auth():
                 user = repair_acct_type(user)
 
             if user.acct_type == "bam":
-                logger.warn("username already taken by a BAM acct")
-                flash("User already exists with BAM credentials, please sign in with those")
+                logger.info("username already taken by a BAM acct")
+                flash("User already exists with BAM credentials, please sign in with those.")
+                return redirect(url_for('bam_login'))
+
+            if user.acct_type == "fb":
+                logger.info("username already taken by a Facebook-linked BAM acct")
+                flash("User already exists with Facebook credentials, please sign in with those.")
                 return redirect(url_for('bam_login'))
 
             logger.debug("logging in already registered google user")
@@ -148,12 +153,43 @@ def google_auth():
 @app.route('/auth/fb', methods=['POST'])
 def fb_auth():
     payload = request.get_json()
+    logger.debug(f"facebook payload: {payload}")
     if payload is not None and payload['fb_token'] is not None: # if there's a facebook token
-        logger.debug("Facebook not yet implemented...")
-        return redirect(url_for('register'))
-    else:
-        logger.debug("Unknown facebook auth error.")
-        return redirect(url_for('register'))
+        fb_email = validate_facebook_user(payload['fb_token'], payload['fb_user_id'])
+        logger.debug(f"validated facebook user email: {fb_email}")
+        user = User.get_user_by_username(fb_email)
+        # check to see if the user already exists, log them in if yes, unless it's a BAM acct
+        if user is not None:
+            if user.acct_type is None:
+                user = repair_acct_type(user)
+
+            if user.acct_type == "bam":
+                logger.warn("username already taken by a BAM acct")
+                flash("User already exists with BAM credentials, please sign in with those")
+                return redirect(url_for('bam_login'))
+
+            if user.acct_type == "google":
+                logger.warn("username already taken by a Google-linked BAM acct")
+                flash("User already exists with Google credentials, please sign in with those")
+                return redirect(url_for('bam_login'))
+
+            logger.debug("logging in already registered facebook user")
+            login_user(user, remember=True)
+            return redirect(url_for('sb_login'))
+
+        # otherwise register the new user and log them in
+        new_user = User.create_user(fb_email, acct_type="fb")
+        if new_user is None:
+            logger.debug("Unknown facebook registration error with None user on creation.")
+            return redirect(url_for('register'))
+
+        logger.info(f"created facebook user: {new_user}")
+        login_user(new_user, remember=True)
+        return redirect(url_for('sb_login'))
+
+
+    logger.debug("Unknown facebook auth error.")
+    return redirect(url_for('register'))
 
 @app.route('/logout/bam')
 def bam_logout():

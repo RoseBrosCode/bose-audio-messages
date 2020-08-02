@@ -21,7 +21,7 @@
         </div>
         <div class="row justify-content-center">
             <p class="mx-auto center" style="font-size: 14px;">
-                Don't have a BAM account yet? <a href="{{ url_for('register') }}">Tap here to sign up</a>
+                Don't have a BAM account? <a href="{{ url_for('register') }}">Tap here to sign up</a>
             </p>
         </div>
         {% with messages = get_flashed_messages() %}
@@ -36,13 +36,13 @@
         {% endif %}
         {% endwith %}
         <div class="row justify-content-center">
-            <div class="col-md-4 pb-4">
-                <div id="googleBtn" class="g-signin2" data-longtitle="true" data-theme="dark"></div>
+            <div class="col-xl-3 pb-4">
+                <div id="googleBtn" class="g-signin2" data-width="228" data-height="40" data-longtitle="true" data-theme="dark"></div>
             </div>
-            <div class="col-md-4">
-                <p class="mx-auto center">
-                    Facebook Sign-In Placeholder
-                </p>
+            <div class="col-xl-3 pb-2">
+                <div class="mx-auto center">
+                    <div data-scope="email" class="fb-login-button" data-size="large" data-button-type="login_with" data-layout="default" data-auto-logout-link="false" data-use-continue-as="false" data-width=""></div>
+                </div>
             </div>
         </div>
         <hr>
