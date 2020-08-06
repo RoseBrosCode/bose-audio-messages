@@ -1,41 +1,76 @@
 {% extends "base.html" %}
 
 {% block head %}
-  <!-- super pulls in the parent's head block -->
-  {{ super() }} 
-  <!-- can add additional head here below here before the endblock -->
+    <!-- super pulls in the parent's head block -->
+    {{ super() }} 
+    <!-- can add additional head here below here before the endblock -->
 {% endblock %}
 
-
 {% block body %}
-    <h1>
-        Bose Audio Messages
-    </h1>
-    <h2>Register</h2>
-    <form action="" method="post">
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.username.label }}<br>
-            {{ form.username(size=32) }}<br>
-            {% for error in form.username.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>
-            {{ form.password.label }}<br>
-            {{ form.password(size=32) }}<br>
-            {% for error in form.password.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>
-            {{ form.repeat_password.label }}<br>
-            {{ form.repeat_password(size=32) }}<br>
-            {% for error in form.repeat_password.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-        </p>
-        <p>{{ form.submit() }}</p>
-    </form>
-    <p><a href="{{ url_for('bam_login') }}">Login</a></p>
+    <div class="container px-4">
+        <div class="row justify-content-center">
+            <p class="mx-auto center mb-1" style="font-size: 18px;">
+                First time here? Create a Bose Audio Messages (BAM) account to get started.
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <p class="mx-auto center" style="font-size: 14px;">
+                Already have a BAM account? <a href="{{ url_for('bam_login') }}">Tap here to sign in</a>
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <p class="mx-auto center">
+                A BAM account lets you send messages from different devices. We recommend using a social login, so you don't need yet another password.
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-4 pb-4">
+                <div id="googleBtn" class="g-signin2" data-width="228" data-height="40" data-longtitle="true" data-theme="dark"></div>
+            </div >
+            <div class="col-md-4">
+                <div class="mx-auto center">
+                    <div data-scope="email" class="fb-login-button" data-size="large" data-button-type="login_with" data-layout="default" data-auto-logout-link="false" data-use-continue-as="false" data-width=""></div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="row justify-content-center pt-3">
+            <p class="mx-auto center mb-1">
+                If you would like to register a unique BAM username and password, you can do so below.
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <p class="mx-auto center" style="font-size: 14px;">
+                (note, we don't have a password reset function yet...)
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <form action="" method="post">
+                {{ form.hidden_tag() }}
+                <p class="mb-2">
+                    {{ form.username(size=32) }}<br>
+                    {{ form.username.label }}<br>
+                    {% for error in form.username.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <p class="mb-2">
+                    {{ form.password(size=32) }}<br>
+                    {{ form.password.label }}<br>
+                    {% for error in form.password.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <p class="mb-2">
+                    {{ form.repeat_password(size=32) }}<br>
+                    {{ form.repeat_password.label }}<br>
+                    {% for error in form.repeat_password.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+                <p class="mx-auto center pb-3">{{ form.submit(class_="btn btn-dark") }}</p>
+            </form>
+        </div>
+        
+    </div>
 {% endblock %}

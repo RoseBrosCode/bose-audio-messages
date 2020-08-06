@@ -1,38 +1,69 @@
 {% extends "base.html" %}
 
 {% block head %}
-  <!-- super pulls in the parent's head block -->
-  {{ super() }} 
-  <!-- can add additional head here below here before the endblock -->
+    <!-- super pulls in the parent's head block -->
+    {{ super() }} 
+    <!-- can add additional head here below here before the endblock -->
 {% endblock %}
 
 
 {% block body %}
-    <h1>
-        Bose Audio Messages
-    </h1>
-    <h2>Sign In</h2>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul>
-        {% for message in messages %}
-        <li>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
-    <a href="{{ url_for('google.login') }}">Log in with Google</a>
-    <form action="" method="post" novalidate>
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.username.label }}<br>
-            {{ form.username(size=32) }}
-        </p>
-        <p>
-            {{ form.password.label }}<br>
-            {{ form.password(size=32) }}
-        </p>
-        <p>{{ form.submit() }}</p>
-    </form>
-    <p><a href="{{ url_for('register') }}">Register</a></p>
+    <div class="container px-4">
+        <div class="row justify-content-center">
+            <p class="mx-auto center mb-1" style="font-size: 18px;">
+                Welcome back!
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <p class="mx-auto center mb-1" style="font-size: 18px;">
+                Please sign in to your BAM account.
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <p class="mx-auto center" style="font-size: 14px;">
+                Don't have a BAM account? <a href="{{ url_for('register') }}">Tap here to sign up</a>
+            </p>
+        </div>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="row justify-content-center">
+            <div class="alert alert-secondary" role="alert">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+        <div class="row justify-content-center">
+            <div class="col-xl-3 pb-4">
+                <div id="googleBtn" class="g-signin2" data-width="228" data-height="40" data-longtitle="true" data-theme="dark"></div>
+            </div>
+            <div class="col-xl-3 pb-2">
+                <div class="mx-auto center">
+                    <div data-scope="email" class="fb-login-button" data-size="large" data-button-type="login_with" data-layout="default" data-auto-logout-link="false" data-use-continue-as="false" data-width=""></div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="row justify-content-center py-3">
+            <p class="mx-auto center mb-1">
+                Or use your unique BAM credentials below.
+            </p>
+        </div>
+        <div class="row justify-content-center">
+            <form action="" method="post" novalidate>
+                {{ form.hidden_tag() }}
+                <p class="mb-2">
+                    {{ form.username(size=32) }}<br>
+                    {{ form.username.label }}
+                </p>
+                <p class="mb-2">
+                    {{ form.password(size=32) }}<br>
+                    {{ form.password.label }}
+                </p>
+                <p class="mx-auto center pb-3">{{ form.submit(class_="btn btn-dark") }}</p>
+            </form>
+        </div>
+    </div>
 {% endblock %}

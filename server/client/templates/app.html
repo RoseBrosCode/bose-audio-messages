@@ -1,64 +1,63 @@
 {% extends "base.html" %}
 
 {% block head %}
-  <!-- super pulls in the parent's head block -->
-  {{ super() }} 
-  <!-- can add additional head here below here before the endblock -->
+	<!-- super pulls in the parent's head block -->
+	{{ super() }} 
+	<!-- can add additional head here below here before the endblock -->
 {% endblock %}
 
 
 {% block body %}
-  <div class="container">
-    <div class="row pt-4">
-      <a href="{{ url_for('bam_logout') }}">Logout</a>
-    </div>
-    <div class="row justify-content-center pt-4">
-      <img src='{{ url_for('static', filename='images/bam-logo.png') }}' height="100px" width="100px" />
-    </div>
-    <div class="row justify-content-center pt-4">
-      <h2 style="font-weight: bold;">Bose Audio Messages</h2>
-    </div>
-    <div class="row justify-content-center">
-      <p>Tap and hold a product to record, release to send.</p>
-    </div>
-    <div class="row justify-content-center">
-      <div id="buttons">
-        {% for product in products %}
-        <div class="row justify-content-center pb-4">
-          <input type="image" id="{{ product.product_id }}" value="{{ product.product_name }}"
-            src="{{ url_for('static', filename='images/' + product.image_name + '.png') }}"
-            imageName="{{ product.image_name }}"
-            height="220px" width="220px">
-        </div>
-        <div class="row justify-content-center pb-4">
-          <span style="font-weight: bold;">{{ product.product_name }}</span>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
+	<div class="container px-4">
+		<div class="row justify-content-center">
+			<p class="mx-auto center" style="font-size: 18px;">
+				Tap and hold a product to record a message. Release to send it.
+			</p>
+		</div>
+		<hr>
+		<div class="row justify-content-center">
+			<p>Messages will play at the following volume: </p>
+		</div>
+		<div class="row justify-content-center pt-4">
+			<input
+				type="text"
+				name="volume-slider"
+				id="volume-slider"
 
-  {% for image_filename in image_filenames %}
-    <img src="{{ url_for('static', filename='images/' + image_name) }}" height="1px" width="1px" style="display: none;"/>
-  {% endfor %}
+				data-slider-min="0"
+				data-slider-max="100"
+				data-slider-step="5"
+				data-slider-value="{{ current_user.preferred_volume }}"
+				data-slider-tooltip="always"
+			>
+		</div>
+		<hr>
+		<div class="row justify-content-center pt-4">
+			<div id="buttons">
+				{% for product in products %}
+				<div class="row justify-content-center pb-4">
+					<input type="image" id="{{ product.product_id }}" value="{{ product.product_name }}"
+						src="{{ url_for('static', filename='images/' + product.image_name + '.png') }}"
+						imageName="{{ product.image_name }}"
+						height="220px" width="220px">
+				</div>
+				<div class="row justify-content-center pb-4">
+					<span style="font-weight: bold;">{{ product.product_name }}</span>
+				</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
 
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-    crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-    crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-    crossorigin="anonymous"></script>
-  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.713.0.min.js"></script>
-  <script src="https://unpkg.com/mic-recorder-to-mp3@2.2.1/dist/index.min.js"></script>
+	{% for image_filename in image_filenames %}
+		<img src="{{ url_for('static', filename='images/' + image_filename) }}" height="1px" width="1px" style="display: none;"/>
+	{% endfor %}
 
-  <!-- set root of server to JS variable -->
-  <script type=text/javascript>
-    window.serverRoot = "{{ url_for('landing') }}";
-    window.staticFilepath = "{{ url_for('static', filename='') }}";
-  </script>
+	<!-- set root of server to JS variable -->
+	<script type=text/javascript>
+		window.serverRoot = "{{ url_for('landing') }}";
+		window.staticFilepath = "{{ url_for('static', filename='') }}";
+	</script>
 
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}
