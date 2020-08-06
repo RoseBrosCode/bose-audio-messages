@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block head %}
-  <!-- super pulls in the parent's head block -->
-  {{ super() }} 
-  <!-- can add additional head here below here before the endblock -->
+    <!-- super pulls in the parent's head block -->
+    {{ super() }} 
+    <!-- can add additional head here below here before the endblock -->
 {% endblock %}
 
 {% block body %}
@@ -15,24 +15,22 @@
         </div>
         <div class="row justify-content-center">
             <p class="mx-auto center" style="font-size: 14px;">
-                Already have a BAM account? <a href="{{ url_for('bam_login') }}">Click here to sign in</a>
+                Already have a BAM account? <a href="{{ url_for('bam_login') }}">Tap here to sign in</a>
             </p>
         </div>
         <div class="row justify-content-center">
             <p class="mx-auto center">
-                A BAM account lets you easily send BAMs from different devices. We recommend using a social login, so you don't need to remember another password.
+                A BAM account lets you send messages from different devices. We recommend using a social login, so you don't need yet another password.
             </p>
         </div>
         <div class="row justify-content-center">
+            <div class="col-md-4 pb-4">
+                <div id="googleBtn" class="g-signin2" data-width="228" data-height="40" data-longtitle="true" data-theme="dark"></div>
+            </div >
             <div class="col-md-4">
-                <p class="mx-auto center">
-                    <a href="{{ url_for('google.login') }}">Google Sign-In Placeholder</a>
-                </p>
-            </div>
-            <div class="col-md-4">
-                <p class="mx-auto center">
-                    Facebook Sign-In Placeholder
-                </p>
+                <div class="mx-auto center">
+                    <div data-scope="email" class="fb-login-button" data-size="large" data-button-type="login_with" data-layout="default" data-auto-logout-link="false" data-use-continue-as="false" data-width=""></div>
+                </div>
             </div>
         </div>
         <hr>
@@ -43,7 +41,7 @@
         </div>
         <div class="row justify-content-center">
             <p class="mx-auto center" style="font-size: 14px;">
-                (worth noting, we don't have a password reset function yet...)
+                (note, we don't have a password reset function yet...)
             </p>
         </div>
         <div class="row justify-content-center">

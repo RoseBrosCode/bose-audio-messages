@@ -2,61 +2,71 @@
 <html lang="en">
 
 <head>
-  {% block head %}
-  <title>Bose Audio Messages</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	{% block head %}
+	<title>Bose Audio Messages</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="google-signin-client_id" content="890422466742-vchhgjnvehtpn7lasl03arlnrtjco9c7.apps.googleusercontent.com">
 
-  <!-- CSS imports -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-  <link rel='stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+	<!-- CSS imports -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+		integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<link rel='stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css">
+	<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 
-  <!-- custom CSS -->
-  <link rel='stylesheet' href="{{ url_for('static', filename='stylesheets/style.css') }}" />
-  <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
-  {% endblock %}
+	<!-- custom CSS -->
+	<link rel='stylesheet' href="{{ url_for('static', filename='stylesheets/style.css') }}" />
+	<link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+
+	{% endblock %}
 </head>
 
 <body>
-  <!-- JS imports -->
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
-  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.713.0.min.js"></script>
-  <script src="https://unpkg.com/mic-recorder-to-mp3@2.2.1/dist/index.min.js"></script>
-  {% block topscripts %}{% endblock %}
-  <div class="container">
-    <div class="row justify-content-center pt-4">
-      <a href="{{ url_for('landing') }}">
-        <img src="{{ url_for('static', filename='images/bam-logo.png') }}" height="100px" width="100px" />
-      </a>
-    </div>
-    <div class="row justify-content-center pt-4">
-      <h2 style="font-weight: bold;">Bose Audio Messages</h2>
-    </div>
-  </div>
-  {% block body %}{% endblock %}
-  <div class="container">
-    {% if current_user.username is defined %}
-    <div class="row justify-content-center pt-5">
-      <p class="mx-auto center mb-1">Currently signed into BAM as <span style="font-weight: bold;">{{ current_user.username }}</span></p>
-    </div>
-    <div class="row justify-content-center">
-      <p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
-    </div>
-    {% endif %}
-    <hr>
-    <div class="row justify-content-center">
-      <p class="mx-auto center">A RoseBrosCode project.</p>
-    </div>
-  </div>
-  {% block bottomscripts %}{% endblock %}
+	<!-- JS imports -->
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+		integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+		integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+		integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
+	<script src="https://sdk.amazonaws.com/js/aws-sdk-2.713.0.min.js"></script>
+	<script src="https://unpkg.com/mic-recorder-to-mp3@2.2.1/dist/index.min.js"></script>
+	<script>
+		var googleAuthURL = "{{ url_for('google_auth') }}";
+		var fbAuthURL = "{{ url_for('fb_auth') }}";
+	</script>
+	<script src="{{ url_for('static', filename='js/googleAuth.js') }}"></script>
+	<script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
+	<script src="{{ url_for('static', filename='js/fbAuth.js') }}"></script>
+	<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+	{% block topscripts %}{% endblock %}
+	<div class="container">
+		<div class="row justify-content-center pt-4">
+			<a href="{{ url_for('landing') }}">
+				<img src="{{ url_for('static', filename='images/bam-logo.png') }}" height="100px" width="100px" />
+			</a>
+		</div>
+		<div class="row justify-content-center pt-4">
+			<h2 style="font-weight: bold;">Bose Audio Messages</h2>
+		</div>
+	</div>
+	{% block body %}{% endblock %}
+	<div class="container">
+		{% if current_user.username is defined %}
+			<div class="row justify-content-center pt-5">
+				<p class="mx-auto center mb-1">Currently signed into BAM as <span style="font-weight: bold;">{{ current_user.username }}</span></p>
+			</div>
+			<div class="row justify-content-center">
+				<p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
+			</div>
+		{% endif %}
+		<hr>
+		<div class="row justify-content-center">
+			<p class="mx-auto center">A RoseBrosCode project.</p>
+		</div>
+	</div>
+	{% block bottomscripts %}{% endblock %}
 </body>
 
 </html>

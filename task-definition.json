@@ -72,6 +72,14 @@
           {
             "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/google-oauth-client-secret",
             "name": "GOOGLE_OAUTH_CLIENT_SECRET"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/facebook-oauth-client-id",
+            "name": "FB_OAUTH_CLIENT_ID"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/facebook-oauth-client-secret",
+            "name": "FB_OAUTH_CLIENT_SECRET"
           }
         ],
         "dockerSecurityOptions": null,

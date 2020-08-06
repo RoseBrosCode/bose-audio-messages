@@ -1,63 +1,63 @@
 {% extends "base.html" %}
 
 {% block head %}
-  <!-- super pulls in the parent's head block -->
-  {{ super() }} 
-  <!-- can add additional head here below here before the endblock -->
+	<!-- super pulls in the parent's head block -->
+	{{ super() }} 
+	<!-- can add additional head here below here before the endblock -->
 {% endblock %}
 
 
 {% block body %}
-  <div class="container px-4">
-    <div class="row justify-content-center">
-      <p class="mx-auto center" style="font-size: 18px;">
-        Tap and hold a product to record a message. Release to send it.
-      </p>
-    </div>
-    <hr>
-    <div class="row justify-content-center">
-      <p>Messages will play at the following volume: </p>
-    </div>
-    <div class="row justify-content-center pt-4">
-      <input
-        type="text"
-        name="volume-slider"
-        id="volume-slider"
+	<div class="container px-4">
+		<div class="row justify-content-center">
+			<p class="mx-auto center" style="font-size: 18px;">
+				Tap and hold a product to record a message. Release to send it.
+			</p>
+		</div>
+		<hr>
+		<div class="row justify-content-center">
+			<p>Messages will play at the following volume: </p>
+		</div>
+		<div class="row justify-content-center pt-4">
+			<input
+				type="text"
+				name="volume-slider"
+				id="volume-slider"
 
-        data-slider-min="0"
-        data-slider-max="100"
-        data-slider-step="5"
-        data-slider-value="{{ current_user.preferred_volume }}"
-        data-slider-tooltip="always"
-      >
-    </div>
-    <hr>
-    <div class="row justify-content-center pt-4">
-      <div id="buttons">
-        {% for product in products %}
-        <div class="row justify-content-center pb-4">
-          <input type="image" id="{{ product.product_id }}" value="{{ product.product_name }}"
-            src="{{ url_for('static', filename='images/' + product.image_name + '.png') }}"
-            imageName="{{ product.image_name }}"
-            height="220px" width="220px">
-        </div>
-        <div class="row justify-content-center pb-4">
-          <span style="font-weight: bold;">{{ product.product_name }}</span>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
+				data-slider-min="0"
+				data-slider-max="100"
+				data-slider-step="5"
+				data-slider-value="{{ current_user.preferred_volume }}"
+				data-slider-tooltip="always"
+			>
+		</div>
+		<hr>
+		<div class="row justify-content-center pt-4">
+			<div id="buttons">
+				{% for product in products %}
+				<div class="row justify-content-center pb-4">
+					<input type="image" id="{{ product.product_id }}" value="{{ product.product_name }}"
+						src="{{ url_for('static', filename='images/' + product.image_name + '.png') }}"
+						imageName="{{ product.image_name }}"
+						height="220px" width="220px">
+				</div>
+				<div class="row justify-content-center pb-4">
+					<span style="font-weight: bold;">{{ product.product_name }}</span>
+				</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
 
-  {% for image_filename in image_filenames %}
-    <img src="{{ url_for('static', filename='images/' + image_filename) }}" height="1px" width="1px" style="display: none;"/>
-  {% endfor %}
+	{% for image_filename in image_filenames %}
+		<img src="{{ url_for('static', filename='images/' + image_filename) }}" height="1px" width="1px" style="display: none;"/>
+	{% endfor %}
 
-  <!-- set root of server to JS variable -->
-  <script type=text/javascript>
-    window.serverRoot = "{{ url_for('landing') }}";
-    window.staticFilepath = "{{ url_for('static', filename='') }}";
-  </script>
+	<!-- set root of server to JS variable -->
+	<script type=text/javascript>
+		window.serverRoot = "{{ url_for('landing') }}";
+		window.staticFilepath = "{{ url_for('static', filename='') }}";
+	</script>
 
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

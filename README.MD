@@ -9,11 +9,12 @@ Loosely in priority order below
 - ~consider fixes for early cutoff issue (rtr)~
 - ~remove Bose branding (zwr)~ done!
 - ~Add styling for login pages (zwr)~
-- Add external provider sign-in options for BAM accounts (zwr)
-  - ~Google~ (needs updating to client-side)
-  - Facebook
+- ~Add external provider sign-in options for BAM accounts (zwr)~
+  - ~Google~ ~(needs updating to client-side)~
+  - ~Facebook~
 - consider redesign of primary page to get more products on screen without scrolling on typical phone sizes (zwr)
 - [Pending UX resolution] Add support for all product images plus default (zwr)
+- add loading spinners for social login buttons
 - improve error handling (tbd)
 - ~add volume override support (zwr)~
 - make this README better
