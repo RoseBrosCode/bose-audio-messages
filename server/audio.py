@@ -1,8 +1,20 @@
+import os
+import uuid
+import logging
+import time
+from flask_socketio import SocketIO, emit
+
+from constants import *
+
 
 MAX_WAV_SIZE = 4294967295
-SAMPLE_RATE = 48000
+SAMPLE_RATE = 44100
 BIT_DEPTH = 16
-CHANNELS = 1
+CHANNELS = 2
+
+
+logger = logging.getLogger(FLASK_NAME)
+
 
 def generate_stream_wave_header(sample_rate=SAMPLE_RATE, bit_depth=BIT_DEPTH, channels=CHANNELS):
     """Creates a WAV header for a undefined-size (stream) file."""
@@ -23,3 +35,57 @@ def generate_stream_wave_header(sample_rate=SAMPLE_RATE, bit_depth=BIT_DEPTH, ch
     return o
 
 
+def setup_recording(socketio, data):
+    # Create a unique ID
+    recording_id = str(uuid.uuid4())
+    
+    # Send ID to client
+    emit('newRecording', { "recordingID": recording_id })
+    
+    @socketio.on(recording_id)
+    def _recording_data(data):
+        file_path = f"{STREAMING_FILE_DIR}/{recording_id}"
+        
+        # Check for existence, write WAV header if new file
+        if not os.path.exists(file_path):
+            logger.info(f"writing new stream file: {recording_id}")
+            # Create file with +
+            with open(file_path, 'wb+') as f:
+                f.write(generate_stream_wave_header())
+
+        # Write data to file
+        with open(file_path, 'ab') as f:
+            f.write(data)
+
+
+def get_stream(recording_id):
+    logger.info(f"streaming recording: {recording_id}")
+    file_path = f"{STREAMING_FILE_DIR}/{recording_id}"
+
+    # Check for recording
+    if not os.path.exists(file_path):
+        logger.info(f"file_path: {file_path} not found")
+        return '', requests.codes.not_found
+    
+    def _stream():
+        CHUNK = 1024
+        TIMEOUT_SEC = 0.5
+
+        with open(file_path, 'rb') as f:
+            last_data_read = 0
+            while True:
+                data = f.read(CHUNK)
+                if data:
+                    last_data_read = time.time()
+                    yield data
+                else:
+                    # Allow time for write
+                    time.sleep(TIMEOUT_SEC / 10.0)
+                    if time.time() - last_data_read > TIMEOUT_SEC:
+                        logger.info(f"file read timed out, deleting: {recording_id}")
+                        break
+        
+        # Delete file
+        os.remove(file_path)
+
+    return _stream

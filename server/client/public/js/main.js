@@ -49,7 +49,9 @@ window.onload = function () {
         });
 
     // Connect to Socket.io server
-    window.socket = io();
+    window.socket = io({
+        transports: ['websocket']
+    });
     socket.on('connect', function () {
         console.log("socket.io connected");
     });
@@ -78,7 +80,7 @@ function pressingDown(e) {
 
         var playUrl = window.serverRoot + "send";
         // var streamUrl = window.serverRoot + "stream/" + streamRecorder.recordingID;
-        var streamUrl = "https://0816ddf57d06.ngrok.io/stream/" + streamRecorder.recordingID;
+        var streamUrl = "https://366cffc82001.ngrok.io/stream/" + streamRecorder.recordingID;
 
         setTimeout(function(){
             var message = {
@@ -100,7 +102,7 @@ function pressingDown(e) {
                 //     $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
                 // }, 5000);
             });
-        }, 2000);
+        }, 1);
     });
 }
 

@@ -3,10 +3,13 @@
 // From https://gabrielpoca.com/2014-06-24-streaming-microphone-from-browser-to-nodejs-no-plugin/
 function convertFloat32ToInt16(buffer) {
     var l = buffer.length;
-    var buf = new Int16Array(l);
-    for (var i = 0; i < buffer.length; i++) {
-        var s = Math.max(-1, Math.min(1, buffer[i]));
-        buf[l] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    var buf = new Int16Array(l * 2);
+    while (l--) {
+        var s = buffer[l]; 
+        var v = s < 0 ? s * 32768 : s * 32767;
+        var i = Math.max(-32768, Math.min(32768, v));
+        buf[l*2] = i;
+        buf[l*2-1] = i;
     }
     return buf.buffer;
 }

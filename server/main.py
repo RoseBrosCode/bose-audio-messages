@@ -3,6 +3,7 @@ import jinja2
 import requests
 import logging
 import uuid
+import time
 from pathlib import Path
 from logging.config import dictConfig
 from flask import Flask, Response, render_template, redirect, render_template, request, session, url_for, flash
@@ -32,7 +33,7 @@ from constants import *
 from user import User, google_bp
 from forms import LoginForm, RegistrationForm
 from images import get_product_image_name_and_filenames
-from audio import generate_stream_wave_header
+from audio import setup_recording, get_stream
 
 # Use reverse proxy to ensure url_for populates with the correct scheme
 class ReverseProxied(object):
@@ -81,49 +82,11 @@ app.jinja_loader = jinja2.ChoiceLoader(
 
 @socketio.on('setupRecording')
 def handle_setup_recording(data):
-    logger.info("IN setupRecording")
-
-    # Create a unique ID
-    recording_id = str(uuid.uuid4())
-    
-    # Send ID to client
-    emit('newRecording', { "recordingID": recording_id })
-    
-    @socketio.on(recording_id)
-    def _recording_data(data):
-        file_path = f"{STREAMING_FILE_DIR}/{recording_id}"
-        
-        # Check for existence before open() as 'ab' creates file
-        if not os.path.exists(file_path):
-            logger.info(f"writing new stream file: {recording_id}")
-            # Create file
-            with open(file_path, 'wb+') as f:
-                f.write(generate_stream_wave_header())
-
-        # Write data to file
-        with open(file_path, 'ab') as f:
-            f.write(data)
+    setup_recording(socketio, data)
 
 @app.route('/stream/<string:recording_id>')
-def get_stream(recording_id):
-    logger.info(f"streaming recording: {recording_id}")
-    file_path = f"{STREAMING_FILE_DIR}/{recording_id}"
-
-    # Check for recording
-    if not os.path.exists(file_path):
-        logger.info(f"file_path: {file_path} not found")
-        return '', requests.codes.not_found
-    
-    def _stream():
-        CHUNK = 1024 # TODO: pick an appropriate size
-
-        with open(file_path, 'rb') as f:
-            while True:
-                data = f.read(CHUNK)
-                if not data:
-                    break
-                yield data
-
+def stream(recording_id):
+    _stream = get_stream(recording_id)
     return Response(_stream())
 
 
