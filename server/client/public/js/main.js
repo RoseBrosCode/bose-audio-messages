@@ -6,7 +6,8 @@ var recorder;
 var streamRecorder;
 var filename;
 var activeProduct;
-var prefixBlob;
+var prefixBlobMP3;
+var prefixWAVData;
 var awsCreds = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: 'us-east-2:3d2538af-9a51-40f1-a1e0-58263df824bd'
 });
@@ -40,12 +41,24 @@ window.onload = function () {
         console.error(e);
     });
 
-    // Fetch prefix audio file
+    // Fetch prefix MP3 audio file
     fetch(window.staticFilepath + "audio/chime.mp3")
         .then(function(response) {
             return response.blob();
         }).then(function(blob) {
-            prefixBlob = blob;
+            prefixBlobMP3 = blob;
+        });
+
+    // Fetch prefix WAV audio file
+    fetch(window.staticFilepath + "audio/chime.wavdata")
+        .then(function (response) {
+            return response.blob();
+        }).then(function (blob) {
+            var fr = new FileReader();
+            fr.onload = function() {
+                prefixWAVData = new Int16Array(fr.result).buffer;
+            };
+            fr.readAsArrayBuffer(blob);
         });
 
     // Connect to Socket.io server
@@ -120,7 +133,7 @@ function notPressingDown(e) {
     // Stop recording
     // recorder.stop().getMp3().then(function([buffer, blob]){
     //     // Append prefix to blob
-    //     var finalBlob = new Blob([prefixBlob, blob], { type: blob.type });
+    //     var finalBlob = new Blob([prefixBlobMP3, blob], { type: blob.type });
 
     //     // Upload to S3
     //     var uuid = generateUUID();

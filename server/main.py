@@ -79,15 +79,21 @@ def load_user(user_id):
 app.jinja_loader = jinja2.ChoiceLoader(
     [app.jinja_loader, jinja2.FileSystemLoader("client/templates")])
 
-
+##############################
+# Streaming Handlers
+##############################
 @socketio.on('setupRecording')
 def handle_setup_recording(data):
+    """Provides a client a recordingID to persist this recording across requests."""
     setup_recording(socketio, data)
 
 @app.route('/stream/<string:recording_id>')
 def stream(recording_id):
+    """Streams the recording file to a product."""
     _stream = get_stream(recording_id)
-    return Response(_stream())
+    if _stream is not None:
+        return Response(_stream())
+    return '', requests.codes.not_found
 
 
 @app.route('/health')

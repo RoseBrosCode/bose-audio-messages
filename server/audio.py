@@ -36,6 +36,10 @@ def generate_stream_wave_header(sample_rate=SAMPLE_RATE, bit_depth=BIT_DEPTH, ch
 
 
 def setup_recording(socketio, data):
+    """
+    Defines a recordingID to allow for a product audio notification to get the correct streaming recording.
+    Sets up a socketio handler for receiving audio data.
+    """
     # Create a unique ID
     recording_id = str(uuid.uuid4())
     
@@ -59,15 +63,19 @@ def setup_recording(socketio, data):
 
 
 def get_stream(recording_id):
+    """
+    Reads from the streaming file and serves the audio notification to a product.
+    """
     logger.info(f"streaming recording: {recording_id}")
     file_path = f"{STREAMING_FILE_DIR}/{recording_id}"
 
     # Check for recording
     if not os.path.exists(file_path):
         logger.info(f"file_path: {file_path} not found")
-        return '', requests.codes.not_found
+        return None
     
     def _stream():
+        """Generator function that provides streaming audio data for the response."""
         CHUNK = 1024
         TIMEOUT_SEC = 0.5
 

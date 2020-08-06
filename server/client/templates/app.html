@@ -59,6 +59,7 @@
   <script type=text/javascript>
     window.serverRoot = "{{ url_for('landing') }}";
     window.staticFilepath = "{{ url_for('static', filename='') }}";
+    window.recorderType = "{{ recorder_type }}"
   </script>
 
   <script src="{{ url_for('static', filename='js/streamRecorder.js') }}"></script>

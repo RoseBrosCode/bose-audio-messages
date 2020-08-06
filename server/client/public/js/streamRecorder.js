@@ -1,6 +1,5 @@
 // With heavy inspiration from https://github.com/closeio/mic-recorder-to-mp3
 
-// From https://gabrielpoca.com/2014-06-24-streaming-microphone-from-browser-to-nodejs-no-plugin/
 function convertFloat32ToInt16(buffer) {
     var l = buffer.length;
     var buf = new Int16Array(l * 2);
@@ -23,6 +22,7 @@ class StreamRecorder {
         this.processor = null;
         this.socket = socket;
         this.recordingID = null;
+        this.started = false;
     }
 
     record(stream) {
@@ -36,6 +36,13 @@ class StreamRecorder {
         this.processor = this.context.createScriptProcessor(0, 1, 1);
 
         this.processor.onaudioprocess = (event) => {
+            if (!this.started) {
+                // Send chime prefix
+                this.socket.emit(this.recordingID, prefixWAVData);
+
+                this.started = true;
+            }
+            
             // Get audio buffer
             var channelData = event.inputBuffer.getChannelData(0);
             
@@ -81,6 +88,7 @@ class StreamRecorder {
     }
 
     stop() {
+        this.started = false;
         if (this.processor && this.microphone) {
             // Clean up nodes.
             this.microphone.disconnect();
