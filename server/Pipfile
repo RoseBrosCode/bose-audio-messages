@@ -4,15 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
+Flask = "*"
 gevent = "*"
 gunicorn = "*"
 requests = "*"
-flask-login = "*"
+Flask-Login = "*"
 redis = "*"
 cryptography = "*"
-flask-wtf = "*"
-flask-dance = "*"
+Flask-WTF = "*"
 blinker = "*"
 google-auth = "*"
 
