@@ -123,14 +123,14 @@ def google_auth():
             if user.acct_type is None:
                 user = repair_acct_type(user)
 
-            if user.acct_type == "bam":
+            if user.acct_type == BAM_ACCT_TYPE:
                 logger.info("username already taken by a BAM acct")
-                flash("User already exists with BAM credentials, please sign in with those.")
+                flash("User already exists with BAM credentials, please sign in with your username and password.")
                 return redirect(url_for('bam_login'))
 
-            if user.acct_type == "fb":
+            if user.acct_type == FB_ACCT_TYPE:
                 logger.info("username already taken by a Facebook-linked BAM acct")
-                flash("User already exists with Facebook credentials, please sign in with those.")
+                flash("User already exists with Facebook credentials, please sign in with Facebook.")
                 return redirect(url_for('bam_login'))
 
             logger.debug("logging in already registered google user")
@@ -138,7 +138,7 @@ def google_auth():
             return redirect(url_for('sb_login'))
 
         # otherwise register the new user and log them in
-        new_user = User.create_user(google_email, provider_access_token=payload['g_token'], acct_type="google")
+        new_user = User.create_user(google_email, provider_access_token=payload['g_token'], acct_type=GOOGLE_ACCT_TYPE)
         if new_user is None:
             logger.debug("Unknown google registration error with None user on creation.")
             return redirect(url_for('register'))
@@ -163,14 +163,14 @@ def fb_auth():
             if user.acct_type is None:
                 user = repair_acct_type(user)
 
-            if user.acct_type == "bam":
+            if user.acct_type == BAM_ACCT_TYPE:
                 logger.warn("username already taken by a BAM acct")
-                flash("User already exists with BAM credentials, please sign in with those")
+                flash("User already exists with BAM credentials, please sign in with your username and password.")
                 return redirect(url_for('bam_login'))
 
-            if user.acct_type == "google":
+            if user.acct_type == GOOGLE_ACCT_TYPE:
                 logger.warn("username already taken by a Google-linked BAM acct")
-                flash("User already exists with Google credentials, please sign in with those")
+                flash("User already exists with Google credentials, please sign in with Google.")
                 return redirect(url_for('bam_login'))
 
             logger.debug("logging in already registered facebook user")
@@ -178,7 +178,7 @@ def fb_auth():
             return redirect(url_for('sb_login'))
 
         # otherwise register the new user and log them in
-        new_user = User.create_user(fb_email, acct_type="fb")
+        new_user = User.create_user(fb_email, acct_type=FB_ACCT_TYPE)
         if new_user is None:
             logger.debug("Unknown facebook registration error with None user on creation.")
             return redirect(url_for('register'))
