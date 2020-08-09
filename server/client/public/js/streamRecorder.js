@@ -62,7 +62,7 @@ class StreamRecorder {
         // Get microphone and begin recording
         return new Promise(function(resolve, reject) {
             // Setup recordingID receiver
-            var receiveRecordingID = function (data) {
+            var receiveRecordingID = function(data) {
                 // Save off recordingID
                 this.recordingID = data.recordingID;
                 console.log("starting recording with recordingID", this.recordingID);
@@ -77,13 +77,19 @@ class StreamRecorder {
                     });
 
                 // Clear listener
-                this.socket.removeListener(receiveRecordingID);
+                this.socket.removeAllListeners("newRecording");
             }.bind(this);
 
+            // Setup start recording handler
             this.socket.on("newRecording", receiveRecordingID);
 
             // Setup a new recording
             this.socket.emit("setupRecording", "");
+
+            // Reject if no response from socket after 2s
+            setTimeout(function() {
+                reject("unable to get a response from server");
+            }, 2000)
         }.bind(this));
     }
 

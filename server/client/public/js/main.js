@@ -94,28 +94,27 @@ function pressingDown(e) {
         var playUrl = window.serverRoot + "send";
         // var streamUrl = window.serverRoot + "stream/" + streamRecorder.recordingID;
         var streamUrl = "https://366cffc82001.ngrok.io/stream/" + streamRecorder.recordingID;
+        var message = {
+            "target_product": activeProduct.id,
+            "url": streamUrl
+        }
+        fetch(playUrl, {
+            method: 'POST',
+            body: JSON.stringify(message),
+            headers: new Headers({
+                'content-type': 'application/json'
+            })
 
-        setTimeout(function(){
-            var message = {
-                "target_product": activeProduct.id,
-                "url": streamUrl
-            }
-            fetch(playUrl, {
-                method: 'POST',
-                body: JSON.stringify(message),
-                headers: new Headers({
-                    'content-type': 'application/json'
-                })
+        }).then(() => {
+            console.log("streaming...");
+            // $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
 
-            }).then(() => {
-                console.log("streaming...");
-                // $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
-
-                // setTimeout(() => {
-                //     $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
-                // }, 5000);
-            });
-        }, 1);
+            // setTimeout(() => {
+            //     $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
+            // }, 5000);
+        });
+    }).catch(function(err) {
+        console.error("unable to start stream recording", err);
     });
 }
 

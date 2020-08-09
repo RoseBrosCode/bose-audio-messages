@@ -42,7 +42,8 @@ def setup_recording(socketio, data):
     """
     # Create a unique ID
     recording_id = str(uuid.uuid4())
-    
+    logger.debug(f"setting up a new recording: {recording_id}")
+
     # Send ID to client
     emit('newRecording', { "recordingID": recording_id })
     
@@ -52,7 +53,7 @@ def setup_recording(socketio, data):
         
         # Check for existence, write WAV header if new file
         if not os.path.exists(file_path):
-            logger.info(f"writing new stream file: {recording_id}")
+            logger.debug(f"writing new stream file: {recording_id}")
             # Create file with +
             with open(file_path, 'wb+') as f:
                 f.write(generate_stream_wave_header())
@@ -71,7 +72,7 @@ def get_stream(recording_id):
 
     # Check for recording
     if not os.path.exists(file_path):
-        logger.info(f"file_path: {file_path} not found")
+        logger.debug(f"file_path: {file_path} not found")
         return None
     
     def _stream():
@@ -90,10 +91,10 @@ def get_stream(recording_id):
                     # Allow time for write
                     time.sleep(TIMEOUT_SEC / 10.0)
                     if time.time() - last_data_read > TIMEOUT_SEC:
-                        logger.info(f"file read timed out, deleting: {recording_id}")
+                        logger.debug(f"file read timed out, deleting: {recording_id}")
                         break
         
         # Delete file
-        os.remove(file_path)
+        # os.remove(file_path) # TODO: re-enable
 
     return _stream
