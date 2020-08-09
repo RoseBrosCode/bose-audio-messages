@@ -207,7 +207,7 @@ def app_home():
             })
 
         # List the products
-        return render_template('app.html', products=client_products, image_filenames=set(image_filenames))
+        return render_template('app.html', products=client_products, image_filenames=set(image_filenames), recorder_type=RECORDER_TYPE)
                 
     else:
         return redirect(url_for('sb_login'))

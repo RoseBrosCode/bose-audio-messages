@@ -41,36 +41,38 @@ window.onload = function () {
         console.error(e);
     });
 
-    // Fetch prefix MP3 audio file
-    fetch(window.staticFilepath + "audio/chime.mp3")
-        .then(function(response) {
-            return response.blob();
-        }).then(function(blob) {
-            prefixBlobMP3 = blob;
+    if (window.recorderType == "STREAMING") {
+        // Fetch prefix WAV audio file
+        fetch(window.staticFilepath + "audio/chime.wavdata")
+            .then(function (response) {
+                return response.blob();
+            }).then(function (blob) {
+                var fr = new FileReader();
+                fr.onload = function() {
+                    prefixWAVData = new Int16Array(fr.result).buffer;
+                };
+                fr.readAsArrayBuffer(blob);
+            });
+
+        // Connect to Socket.io server
+        window.socket = io({
+            transports: ['websocket']
+        });
+        socket.on('connect', function () {
+            console.log("socket.io connected");
         });
 
-    // Fetch prefix WAV audio file
-    fetch(window.staticFilepath + "audio/chime.wavdata")
-        .then(function (response) {
-            return response.blob();
-        }).then(function (blob) {
-            var fr = new FileReader();
-            fr.onload = function() {
-                prefixWAVData = new Int16Array(fr.result).buffer;
-            };
-            fr.readAsArrayBuffer(blob);
-        });
-
-    // Connect to Socket.io server
-    window.socket = io({
-        transports: ['websocket']
-    });
-    socket.on('connect', function () {
-        console.log("socket.io connected");
-    });
-
-    // Setup stream recorder
-    streamRecorder = new StreamRecorder(window.socket);
+        // Setup stream recorder
+        streamRecorder = new StreamRecorder(window.socket);
+    } else {
+        // Fetch prefix MP3 audio file
+        fetch(window.staticFilepath + "audio/chime.mp3")
+            .then(function (response) {
+                return response.blob();
+            }).then(function (blob) {
+                prefixBlobMP3 = blob;
+            });
+    };
 };
 
 function preventMenu(e) {
@@ -85,107 +87,107 @@ function pressingDown(e) {
     activeProduct = e.target;
     e.preventDefault();
     e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-getting-ready.png";
-    // recorder.start().then(function() {
-    //     e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
-    // });
-    streamRecorder.start().then(function() {
-        e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
 
-        var playUrl = window.serverRoot + "send";
-        // var streamUrl = window.serverRoot + "stream/" + streamRecorder.recordingID;
-        var streamUrl = "https://366cffc82001.ngrok.io/stream/" + streamRecorder.recordingID;
-        var message = {
-            "target_product": activeProduct.id,
-            "url": streamUrl
-        }
-        fetch(playUrl, {
-            method: 'POST',
-            body: JSON.stringify(message),
-            headers: new Headers({
-                'content-type': 'application/json'
-            })
+    if (window.recorderType == "STREAMING") {
+        streamRecorder.start().then(function () {
+            e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
 
-        }).then(() => {
-            console.log("streaming...");
-            // $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+            var playUrl = window.serverRoot + "send";
+            var streamUrl = "https://366cffc82001.ngrok.io/stream/" + streamRecorder.recordingID;
+            var message = {
+                "target_product": activeProduct.id,
+                "url": streamUrl
+            }
+            fetch(playUrl, {
+                method: 'POST',
+                body: JSON.stringify(message),
+                headers: new Headers({
+                    'content-type': 'application/json'
+                })
 
-            // setTimeout(() => {
-            //     $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
-            // }, 5000);
+            }).then(() => {
+                console.log("sent audio notification for stream");
+            });
+        }).catch(function (err) {
+            console.error("unable to start stream recording", err);
         });
-    }).catch(function(err) {
-        console.error("unable to start stream recording", err);
-    });
+    } else {
+        recorder.start().then(function() {
+            e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
+        });
+    }
 }
 
 function notPressingDown(e) {
     activeProduct = e.target;
     e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-sending.png";
 
-    streamRecorder.stop();
-    $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+    if (window.recorderType == "STREAMING") {
+        streamRecorder.stop();
+        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+    } else {
+        // Stop recording
+        recorder.stop().getMp3().then(function([buffer, blob]){
+            // Append prefix to blob
+            var finalBlob = new Blob([prefixBlobMP3, blob], { type: blob.type });
+
+            // Upload to S3
+            var uuid = generateUUID();
+            // bam_msg_ prefixed objects are cleaned up after 1 day
+            filename = "bam_msg_" + uuid + ".mp3";
+            var upload = new AWS.S3.ManagedUpload({
+                params: {
+                    Bucket: "bose-audio-messages-demo",
+                    Key: filename,
+                    Body: finalBlob,
+                    ACL: "public-read"
+                }
+            });
+
+            upload.promise().then(
+                function (data) {
+                    console.log("upload success! URL: ", data.Location);
+                    console.log("product to sent to: ", activeProduct.id);
+
+                    var playUrl = window.serverRoot + "send";
+
+                    var message = {
+                        "origin": "BAM Web App",
+                        "key": filename,
+                        "target_product": activeProduct.id,
+                        "url": data.Location
+                    }
+                    console.log(message);
+                    fetch(playUrl, {
+                        method: 'POST',
+                        body: JSON.stringify(message),
+                        headers: new Headers({
+                            'content-type': 'application/json'
+                        })
+
+                    }).then(() => {
+                        $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+
+                        setTimeout(() => {
+                            $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
+                        }, 5000);
+                    });
+
+                },
+                function (err) {
+                    console.log("There was an error uploading the mesage: ", err.message);
+                }
+            );
+        }).catch(function(e) {
+            // Unable to get MP3 audio
+            // TODO: prompt user somehow
+            console.error(e);
+        });
+    }
 
     setTimeout(() => {
         $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
     }, 5000);
-
-    // Stop recording
-    // recorder.stop().getMp3().then(function([buffer, blob]){
-    //     // Append prefix to blob
-    //     var finalBlob = new Blob([prefixBlobMP3, blob], { type: blob.type });
-
-    //     // Upload to S3
-    //     var uuid = generateUUID();
-    //     // bam_msg_ prefixed objects are cleaned up after 1 day
-    //     filename = "bam_msg_" + uuid + ".mp3";
-    //     var upload = new AWS.S3.ManagedUpload({
-    //         params: {
-    //             Bucket: "bose-audio-messages-demo",
-    //             Key: filename,
-    //             Body: finalBlob,
-    //             ACL: "public-read"
-    //         }
-    //     });
-
-    //     upload.promise().then(
-    //         function (data) {
-    //             console.log("upload success! URL: ", data.Location);
-    //             console.log("product to sent to: ", activeProduct.id);
-
-    //             var playUrl = window.serverRoot + "send";
-
-    //             var message = {
-    //                 "origin": "BAM Web App",
-    //                 "key": filename,
-    //                 "target_product": activeProduct.id,
-    //                 "url": data.Location
-    //             }
-    //             console.log(message);
-    //             fetch(playUrl, {
-    //                 method: 'POST',
-    //                 body: JSON.stringify(message),
-    //                 headers: new Headers({
-    //                     'content-type': 'application/json'
-    //                 })
-
-    //             }).then(() => {
-    //                 $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
-
-    //                 setTimeout(() => {
-    //                     $(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
-    //                 }, 5000);
-    //             });
-
-    //         },
-    //         function (err) {
-    //             console.log("There was an error uploading the mesage: ", err.message);
-    //         }
-    //     );
-    // }).catch(function(e) {
-    //     // Unable to get MP3 audio
-    //     // TODO: prompt user somehow
-    //     console.error(e);
-    // });
 }
 
 // UUID gen
