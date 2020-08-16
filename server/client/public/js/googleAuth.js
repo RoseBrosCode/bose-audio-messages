@@ -8,7 +8,7 @@ function googleInit() {
 	gapi.load('auth2', function() {
 			gapi.auth2.init({}).then(function(auth2) {
 				var signin_needed = document.body.contains(document.getElementById('googleBtn'));
-				console.log('is signin needed?', signin_needed);  
+				console.log('is signin needed?', signin_needed);
 				if (signin_needed) {
 					element = document.getElementById('googleBtn');
 					auth2.attachClickHandler(element, {
@@ -23,7 +23,6 @@ function googleInit() {
 function onGoogleSignIn(googleUser) {
 	// Getting the google ID token:
 	var id_token = googleUser.getAuthResponse().id_token;
-	console.log("ID Token: " + id_token);
 	fetch(googleAuthURL, {
 		method: 'POST',
 		body: JSON.stringify({
