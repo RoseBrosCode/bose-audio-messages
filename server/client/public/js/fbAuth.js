@@ -11,7 +11,6 @@ window.fbAsyncInit = function() {
 function onFbStatusChange(response) {
 	if (response.status === 'connected') {
 		// Signed in to BAM and Facebook.
-		console.log(response);
 		fetch(fbAuthURL, {
 			method: 'POST',
 			body: JSON.stringify({

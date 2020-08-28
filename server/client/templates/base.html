@@ -31,7 +31,7 @@
 		integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
 	<script src="https://sdk.amazonaws.com/js/aws-sdk-2.713.0.min.js"></script>
-	<script src="https://unpkg.com/mic-recorder-to-mp3@2.2.1/dist/index.min.js"></script>
+	<script src="https://unpkg.com/mic-recorder-to-mp3@2.2.2/dist/index.min.js"></script>
 	<script>
 		var googleAuthURL = "{{ url_for('google_auth') }}";
 		var fbAuthURL = "{{ url_for('fb_auth') }}";
@@ -48,7 +48,7 @@
 			</a>
 		</div>
 		<div class="row justify-content-center pt-4">
-			<h2 style="font-weight: bold;">Bose Audio Messages</h2>
+			<h2 style="font-weight: bold;" class="mx-auto center">Bose Audio Messages</h2>
 		</div>
 	</div>
 	{% block body %}{% endblock %}
