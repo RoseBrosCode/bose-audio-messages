@@ -15,7 +15,8 @@ Loosely in priority order below
 - consider redesign of primary page to get more products on screen without scrolling on typical phone sizes (zwr)
 - [Pending UX resolution] Add support for all product images plus default (zwr)
 - add loading spinners for social login buttons
-- improve error handling (tbd)
+- add tests (zwr)
+- genericize to include Sonos
+- improve error handling (zwr)
 - ~add volume override support (zwr)~
 - make this README better
-- add tests? (tbd)
