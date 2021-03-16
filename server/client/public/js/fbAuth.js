@@ -3,7 +3,7 @@ window.fbAsyncInit = function() {
 		appId            : '210242747075512',
 		autoLogAppEvents : true,
 		xfbml            : true,
-		version          : 'v7.0'
+		version          : 'v10.0'
 	});
 	FB.Event.subscribe('auth.statusChange', onFbStatusChange);
 };
