@@ -32,7 +32,7 @@ New Arguments:
 
 Changed Arguments:
 - `encrypted_refresh_token=None` --> `bose_encrypted_refresh_token=None`
-- `encrypted_access_token=None` --> `bose.encrypted_access_token=None`
+- `encrypted_access_token=None` --> `bose_encrypted_access_token=None`
 
 Logic Changes:
 Set the properties appropriately based on new/updated arguments and properties.
@@ -98,17 +98,17 @@ Add an if statement based on `vendor` and return a refreshed access token only f
 
 #### `get_products`
 New Argument:
-- `vendor_list` - List, containing the vendors for which products are desired. List entries must be a String associated with a supported vendor, currently either `'bose'` or `'sonos'`.
+- `linked_vendors` - Dict, where keys are a String associated with a supported vendor, currently either `'bose'` or `'sonos'`, and the values are a second dict, with keys being a String, either `'refresh'` or `'access'`, and the keys being the appropriate token for that vendor.
 
 Logic Changes:
-Add a for loop based on each item in `vendor_list`, getting the products for each vendor. Return an object that contains all products from both vendors, in a unified schema.
+Add a for loop based on each item in `linked_vendors`, getting the products for each vendor. Return an object that contains all products from both vendors, in a unified schema.
 
 #### `send_audio_notification`
 New Argument:
-- `product_vendor` - String, either `'bose'` or `'sonos'`. 
+- `vendor` - String, either `'bose'` or `'sonos'`. 
 
 Logic Changes:
-Add an if statement based on `product_vendor` that makes the call to the correct vendor's API.
+Add an if statement based on `vendor` that makes the call to the correct vendor's API.
 
 ### Methods Not Modified
 None - all are modified
@@ -120,6 +120,9 @@ This will no longer be needed and is to be deleted.
 ### Additions
 #### `@app.route('/manage')` and `manage_linked_accounts()` Route Handler
 This route will serve a page for the user to link or unlink their Bose and/or Sonos accounts. It will send to the client information about the state of those two account links. This will incorporate logic currently in `sb_login()`.
+
+#### `@app.route('/logout/sonos')` and `sonos_logout()` Route Handler
+This will call `clear_tokens('sonos')` on the current user and redirect to `/app` (which would then redirect to `/manage` if needed).
 
 ### Deletions
 #### ~~`@app.route('/login/bose')` and `sb_login()` Route Handler~~
@@ -157,7 +160,7 @@ The clear tokens method needs the Bose vendor argument.
 Once tokens have been cleared, users should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
 
 #### `auth_redirect()` Route Handler
-This method will need to use the request information to identify which vendor (Bose or Sonos) is providing the authorization code (by looking at the requestor host), and then get and set tokens for the user appropriately.
+This method will need to use the `state` parameter of the OAuth flow to identify which vendor (Bose or Sonos) is providing the authorization code (by looking at the requestor host), and then get and set tokens for the user appropriately.
 
 #### `app_home()` Route Handler
 Evolve all token-checking logic to account for multiple speaker vendors.
@@ -191,6 +194,8 @@ Update speaker visual presentation to move away from current image-based system 
 
 Users will tap the icon as they tapped the image before. Product name will now be ABOVE the icon, and the product name will update to hold the status images (instead of them being in the image).
 
+Product vendor will need to be added as an attribute to the product image
+
 ## Client Template `base.html`
 ### Modifications
 In the footer, change the Bose Unlink link to a more generic Manage Linked Accounts link and have it link to `/manage` instead of `/logout/bose`.
@@ -205,4 +210,4 @@ Update this to provide link options to both Bose and Sonos, and also to provide 
 ### Modifications
 Wherever images are swapped out to update status, make updates to enable new UX outlined in the `app.html` modifications listed above.
 
-TBD -- update S3 bucket name?? (feedback requested)
+Also, need to update the audio notification message POST to include vendor name. 
