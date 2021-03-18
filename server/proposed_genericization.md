@@ -2,43 +2,6 @@
 This document outlines the steps planned to convert BAM from a Bose-only application to one that supports Bose and Sonos.
 
 # TODO:
-## Server Speaker Client (`switchboard.py` --> `speaker.py`)
-Note the name change for this file.
-
-### Additions
-None
-
-### Modifications
-The following methods will be changed:
-#### `refresh_sb_token` --> `get_refreshed_access_token`
-Note the name change of this method.
-
-New Argument:
-- `vendor` - String, either `'bose'` or `'sonos'`. 
-
-Logic Changes:
-Add an if statement based on `vendor` and return a refreshed access token only for that vendor.
-
-#### `get_products`
-New Argument:
-- `linked_vendors` - Dict, where keys are a String associated with a supported vendor, currently either `'bose'` or `'sonos'`, and the values are a second dict, with keys being a String, either `'refresh'` or `'access'`, and the keys being the appropriate token for that vendor.
-
-Logic Changes:
-Add a for loop based on each item in `linked_vendors`, getting the products for each vendor. Return an object that contains all products from both vendors, in a unified schema.
-
-#### `send_audio_notification`
-New Argument:
-- `vendor` - String, either `'bose'` or `'sonos'`. 
-
-Logic Changes:
-Add an if statement based on `vendor` that makes the call to the correct vendor's API.
-
-### Methods Not Modified
-None - all are modified
-
-## ~~Server Images Logic `images.py`~~
-This will no longer be needed and is to be deleted.
-
 ## Server Main Application (`main.py`)
 ### Additions
 #### `@app.route('/manage')` and `manage_linked_accounts()` Route Handler
@@ -207,4 +170,40 @@ Add an if statement based on `vendor` and delete the tokens only for that vendor
 
 ### Methods Not Modified
 `load_user`, `get_user_by_username`, `create_user`, `username_exists`, `check_password`, `get_provider_access_token`, `set_provider_access_token`, `set_provider_access_token`, `set_acct_type`, `validate_google_user`, `validate_facebook_user`, `repair_acct_type`
+
+## Server Speaker Client (`switchboard.py` --> `speaker.py`)
+Note the name change for this file.
+
+### Additions
+None
+
+### Modifications
+The following methods will be changed:
+
+#### `refresh_sb_token` --> `get_refreshed_access_token`
+Note the name change of this method.
+
+New Argument:
+- `vendor` - String, either `'bose'` or `'sonos'`. 
+
+Logic Changes:
+Add an if statement based on `vendor` and return a refreshed access token only for that vendor.
+
+#### `get_products`
+New Argument:
+- `linked_vendors` - Dict, where keys are a String associated with a supported vendor, currently either `'bose'` or `'sonos'`, and the values are a second dict, with keys being a String, either `'refresh'` or `'access'`, and the keys being the appropriate token for that vendor.
+
+Logic Changes:
+Add a for loop based on each item in `linked_vendors`, getting the products for each vendor. Return an object that contains all products from both vendors, in a unified schema.
+
+#### `send_audio_notification`
+New Argument:
+- `vendor` - String, either `'bose'` or `'sonos'`. 
+- `refresh_token` - the refresh token associated with the product
+
+Logic Changes:
+Add an if statement based on `vendor` that makes the call to the correct vendor's API.
+
+### Methods Not Modified
+None - all are modified
 

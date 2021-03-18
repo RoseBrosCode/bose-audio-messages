@@ -107,26 +107,26 @@ def get_products(linked_vendors):
 def send_audio_notification(access_token, refresh_token, vendor, product_id, msg_url, desired_volume=None):
 	""" sends the specified URL as an Audio Notification to the specified product """
 	if vendor == BOSE_VENDOR_ID:
-			bose_headers = {
-				'Authorization': 'Bearer ' + access_token,
-				'X-API-Version': os.environ['SB_API_VERSION'],
-				'X-ApiKey': os.environ['SB_CLIENT_ID']
-			}
+		bose_headers = {
+			'Authorization': 'Bearer ' + access_token,
+			'X-API-Version': os.environ['SB_API_VERSION'],
+			'X-ApiKey': os.environ['SB_CLIENT_ID']
+		}
 
-			# Try to send AN
-			bose_an_data = {
-				'url': msg_url
-			}
+		# Try to send AN
+		bose_an_data = {
+			'url': msg_url
+		}
 
-			if desired_volume is not None:
-				bose_an_data.update(volumeOverride=desired_volume)
+		if desired_volume is not None:
+			bose_an_data.update(volumeOverride=desired_volume)
 
-			bose_an_res = requests.post(f'https://partners.api.bose.io/products/{product_id}/content/notify', headers=bose_headers, json=bose_an_data)
+		bose_an_res = requests.post(f'https://partners.api.bose.io/products/{product_id}/content/notify', headers=bose_headers, json=bose_an_data)
 
-			# If 403, then access token expired
-			if bose_an_res.status_code == 403:
-				access_token = get_refreshed_access_token(refresh_token, vendor)
-				bose_an_res = requests.post(f'https://partners.api.bose.io/products/{product_id}/content/notify', headers=bose_headers, json=bose_an_data)	
+		# If 403, then access token expired
+		if bose_an_res.status_code == 403:
+			access_token = get_refreshed_access_token(refresh_token, vendor)
+			bose_an_res = requests.post(f'https://partners.api.bose.io/products/{product_id}/content/notify', headers=bose_headers, json=bose_an_data)	
 
 		return bose_an_res	
 
