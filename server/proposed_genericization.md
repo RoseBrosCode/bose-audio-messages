@@ -1,84 +1,7 @@
 # Genericization Plan
 This document outlines the steps planned to convert BAM from a Bose-only application to one that supports Bose and Sonos.
 
-## Naming and Copy
-BAM originally stood for Bose Audio Messages. This will be genericized to Brief Audio Messages throughout.
-
-## Server Constants (`constants.py`)
-### Additions
-`BOSE_VENDOR_ID = "bose"`
-`SONOS_VENDOR_ID = "sonos"`
-
-No modifications or deletions.
-
-## Server User Model (`user.py`)
-### Additions
-The following properties will be added: 
-- `self.sonos_encrypted_refresh_token`
-- `self.sonos_encrypted_access_token`
-
-No new methods will be added
-
-### Modifications
-The following properties will be changed:
-- `self.encrypted_refresh_token` --> `self.bose_encrypted_refresh_token`
-- `self.encrypted_access_token` --> `self.bose.encrypted_access_token`
-
-The following methods will be changed:
-#### `__init__`
-New Arguments:
-- `sonos_encrypted_refresh_token=None`
-- `sonos_encrypted_access_token=None`
-
-Changed Arguments:
-- `encrypted_refresh_token=None` --> `bose_encrypted_refresh_token=None`
-- `encrypted_access_token=None` --> `bose_encrypted_access_token=None`
-
-Logic Changes:
-Set the properties appropriately based on new/updated arguments and properties.
-
-#### `from_dict`
-No additions or changes to arguments
-
-Logic Changes:
-Return new properties and address changed property names
-
-#### `get_refresh_token`
-New Argument:
-- `vendor` - String, either `'bose'` or `'sonos'`. Denotes which speaker vendor's refresh token is desired.
-
-No changes to the existing argument.
-
-Logic Changes:
-Add an if statement based on the new `vendor` argument, which determines which refresh token to decrypt and return (either bose or sonos).
-
-#### `set_refresh_token`
-New Argument:
-- `vendor` - String, either `'bose'` or `'sonos'`. Denotes which speaker vendor's refresh token is desired.
-
-No changes to the existing arguments.
-
-Logic Changes:
-Within the "try" block, add an if statement based on the new `vendor` argument, which determines which refresh token to encrypt and set (either bose or sonos).
-
-#### `get_access_token`
-Changes essentially the same as `get_refresh_token`.
-
-#### `set_access_token`
-Changes essentially the same as `set_refresh_token`.
-
-#### `clear_tokens`
-New Argument:
-- `vendor` - String, either `'bose'` or `'sonos'`. 
-
-No changes to the existing arguments.
-
-Logic Changes:
-Add an if statement based on `vendor` and delete the tokens only for that vendor.
-
-### Methods Not Modified
-`load_user`, `get_user_by_username`, `create_user`, `username_exists`, `check_password`, `get_provider_access_token`, `set_provider_access_token`, `set_provider_access_token`, `set_acct_type`, `validate_google_user`, `validate_facebook_user`, `repair_acct_type`
-
+# TODO:
 ## Server Speaker Client (`switchboard.py` --> `speaker.py`)
 Note the name change for this file.
 
@@ -211,3 +134,77 @@ Update this to provide link options to both Bose and Sonos, and also to provide 
 Wherever images are swapped out to update status, make updates to enable new UX outlined in the `app.html` modifications listed above.
 
 Also, need to update the audio notification message POST to include vendor name. 
+
+# DONE
+## Naming and Copy
+BAM originally stood for Bose Audio Messages. This will be genericized to Brief Audio Messages throughout.
+
+## Server Constants (`constants.py`)
+### Additions
+`BOSE_VENDOR_ID = "bose"`
+`SONOS_VENDOR_ID = "sonos"`
+
+No modifications or deletions.
+
+## Server User Model (`user.py`)
+### Additions
+The following properties will be added: 
+- `self.bose_encrypted_refresh_token`
+- `self.bose_encrypted_access_token`
+- `self.sonos_encrypted_refresh_token`
+- `self.sonos_encrypted_access_token`
+
+### Modifications
+The following methods will be changed:
+#### `__init__`
+New Arguments:
+- `self.bose_encrypted_refresh_token=None`
+- `self.bose_encrypted_access_token=None`
+- `sonos_encrypted_refresh_token=None`
+- `sonos_encrypted_access_token=None`
+
+Logic Changes:
+Set the new properties appropriately based on new/updated arguments and properties.
+
+#### `from_dict`
+No additions or changes to arguments
+
+Logic Changes:
+Return new properties and address changed property names
+
+#### `get_refresh_token`
+New Argument:
+- `vendor` - String, either `'bose'` or `'sonos'`. Denotes which speaker vendor's refresh token is desired.
+
+No changes to the existing argument.
+
+Logic Changes:
+Add an if statement based on the new `vendor` argument, which determines which refresh token to decrypt and return (either bose or sonos).
+
+#### `set_refresh_token`
+New Argument:
+- `vendor` - String, either `'bose'` or `'sonos'`. Denotes which speaker vendor's refresh token is desired.
+
+No changes to the existing arguments.
+
+Logic Changes:
+Within the "try" block, add an if statement based on the new `vendor` argument, which determines which refresh token to encrypt and set (either bose or sonos).
+
+#### `get_access_token`
+Changes essentially the same as `get_refresh_token`.
+
+#### `set_access_token`
+Changes essentially the same as `set_refresh_token`.
+
+#### `clear_tokens`
+New Argument:
+- `vendor` - String, either `'bose'` or `'sonos'`. 
+
+No changes to the existing arguments.
+
+Logic Changes:
+Add an if statement based on `vendor` and delete the tokens only for that vendor.
+
+### Methods Not Modified
+`load_user`, `get_user_by_username`, `create_user`, `username_exists`, `check_password`, `get_provider_access_token`, `set_provider_access_token`, `set_provider_access_token`, `set_acct_type`, `validate_google_user`, `validate_facebook_user`, `repair_acct_type`
+

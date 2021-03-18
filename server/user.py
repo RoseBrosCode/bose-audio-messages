@@ -38,14 +38,18 @@ except Exception as e:
 class User(UserMixin):
 	"""Models a user of BAM."""
 
-	def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, acct_type=BAM_ACCT_TYPE, encrypted_refresh_token=None, encrypted_access_token=None, preferred_volume=DEFAULT_PREFERRED_VOLUME):
+	def __init__(self, user_id, username, password_hash, encrypted_provider_access_token, acct_type=BAM_ACCT_TYPE, encrypted_refresh_token=None, encrypted_access_token=None, bose_encrypted_refresh_token=None, bose_encrypted_access_token=None, sonos_encrypted_refresh_token=None, sonos_encrypted_access_token=None, preferred_volume=DEFAULT_PREFERRED_VOLUME):
 		self.user_id = user_id
 		self.username = username
 		self.password_hash = password_hash
 		self.encrypted_provider_access_token = encrypted_provider_access_token
 		self.acct_type = acct_type
-		self.encrypted_refresh_token = encrypted_refresh_token
-		self.encrypted_access_token = encrypted_access_token
+		self.encrypted_refresh_token = encrypted_refresh_token # deprecated, kept for backwards compatibility
+		self.encrypted_access_token = encrypted_access_token # deprecated, kept for backwards compatibility
+		self.bose_encrypted_refresh_token = bose_encrypted_refresh_token
+		self.bose_encrypted_access_token = bose_encrypted_access_token
+		self.sonos_encrypted_refresh_token = sonos_encrypted_refresh_token
+		self.sonos_encrypted_access_token = sonos_encrypted_access_token
 		self.preferred_volume = preferred_volume
 
 	@staticmethod
@@ -76,7 +80,8 @@ class User(UserMixin):
 				for key, val in d.items() }
 		logger.debug(f"getting user from dict: {d}")
 		return User(d.get("user_id", None), d.get("username", None), d.get("password_hash", None), d.get("encrypted_provider_access_token", None),
-					d.get("acct_type", None), d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None), d.get("preferred_volume", None))
+					d.get("acct_type", None), d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None), 
+					d.get("bose_encrypted_refresh_token", None), d.get("bose_encrypted_access_token", None),d.get("sonos_encrypted_refresh_token", None), d.get("sonos_encrypted_access_token", None), d.get("preferred_volume", None))
 
 	@staticmethod
 	def get_user_by_username(username, retries=1):
@@ -124,7 +129,6 @@ class User(UserMixin):
 				if provider_access_token:
 					encrypted_provider_access_token = secret_key.encrypt(provider_access_token.encode())
 
-				# TODO: add password_hash and encrypted_provider_access_token to user_dict
 				user_dict = {
 					"user_id": user_id,
 					"username": username_lower,
@@ -173,35 +177,135 @@ class User(UserMixin):
 	def get_id(self):
 		return self.user_id
 
-	def get_refresh_token(self):
-		if self.encrypted_refresh_token:
-			return secret_key.decrypt(self.encrypted_refresh_token.encode()).decode()
+	def get_refresh_token(self, vendor, retries=1):
+		if vendor == BOSE_VENDOR_ID:
+			# if legacy token is present, copy over to bose_encrypted_refresh_token locally and in db, and then delete
+			if self.encrypted_refresh_token: 
+				self.bose_encrypted_refresh_token = self.encrypted_refresh_token
+				# set new token in db
+				try:
+					db.hset(f"user:{self.user_id}", "bose_encrypted_refresh_token", self.bose_encrypted_refresh_token)
+				except ConnectionError:
+					logger.error(f"unable to set new bose_encrypted_refresh_token in db, retries remaining = {retries}")
+					if retries > 0:
+						return self.get_refresh_token(vendor, retries=retries-1)
+					return None
+				retries = 1
+				# clear legacy token from db and current user
+				try:
+					# Create transaction
+					pipeline = db.pipeline()
+
+					# Delete legacy refresh token
+					pipeline.hdel(f"user:{self.user_id}", "encrypted_refresh_token")
+					self.encrypted_refresh_token = None
+
+					# Delete legacy access token
+					pipeline.hdel(f"user:{self.user_id}", "encrypted_access_token")
+					self.encrypted_access_token = None
+
+					# Execute transaction
+					pipeline.execute()
+				except ConnectionError:
+					logger.error(f"unable to clear legacy tokens from db, retries remaining = {retries}")
+					if retries > 0:
+						return self.get_refresh_token(vendor, retries=retries-1)
+			
+			if self.bose_encrypted_refresh_token:
+				return secret_key.decrypt(self.bose_encrypted_refresh_token.encode()).decode()
+			return None
+		
+		elif vendor == SONOS_VENDOR_ID:
+			if self.sonos_encrypted_refresh_token:
+				return secret_key.decrypt(self.sonos_encrypted_refresh_token.encode()).decode()
+			return None
+		
 		return None
 
-	def set_refresh_token(self, refresh_token, retries=1):
-		self.encrypted_refresh_token = secret_key.encrypt(refresh_token.encode())
+	def set_refresh_token(self, refresh_token, vendor, retries=1):
 		try:
-			db.hset(f"user:{self.user_id}", "encrypted_refresh_token", self.encrypted_refresh_token)
+			if vendor == BOSE_VENDOR_ID:
+				self.bose_encrypted_refresh_token = secret_key.encrypt(refresh_token.encode())
+				db.hset(f"user:{self.user_id}", "bose_encrypted_refresh_token", self.bose_encrypted_refresh_token)
+			
+			elif vendor == SONOS_VENDOR_ID:
+				self.sonos_encrypted_refresh_token = secret_key.encrypt(refresh_token.encode())
+				db.hset(f"user:{self.user_id}", "sonos_encrypted_refresh_token", self.sonos_encrypted_refresh_token)
+
+			else:
+				return False
+
 		except ConnectionError:
-			logger.error(f"unable to set_refresh_token, retries remaining = {retries}")
+			logger.error(f"unable to set {vendor} refresh token, retries remaining = {retries}")
 			if retries > 0:
-				return self.set_refresh_token(refresh_token, retries=retries-1)
+				return self.set_refresh_token(refresh_token, vendor, retries=retries-1)
 			return False
+
 		return True
 
-	def get_access_token(self):
-		if self.encrypted_access_token:
-			return secret_key.decrypt(self.encrypted_access_token.encode()).decode()
+	def get_access_token(self, vendor, retries=1):
+		if vendor == BOSE_VENDOR_ID:
+			# if legacy token is present, copy over to bose_encrypted_access_token locally and in db, and then delete
+			if self.encrypted_access_token: 
+				self.bose_encrypted_access_token = self.encrypted_access_token
+				# set new token in db
+				try:
+					db.hset(f"user:{self.user_id}", "bose_encrypted_access_token", self.bose_encrypted_access_token)
+				except ConnectionError:
+					logger.error(f"unable to set new bose_encrypted_access_token in db, retries remaining = {retries}")
+					if retries > 0:
+						return self.get_access_token(vendor, retries=retries-1)
+					return None
+				retries = 1
+				# clear legacy token from db and current user
+				try:
+					# Create transaction
+					pipeline = db.pipeline()
+
+					# Delete legacy refresh token
+					pipeline.hdel(f"user:{self.user_id}", "encrypted_refresh_token")
+					self.encrypted_refresh_token = None
+
+					# Delete legacy access token
+					pipeline.hdel(f"user:{self.user_id}", "encrypted_access_token")
+					self.encrypted_access_token = None
+
+					# Execute transaction
+					pipeline.execute()
+				except ConnectionError:
+					logger.error(f"unable to clear legacy tokens from db, retries remaining = {retries}")
+					if retries > 0:
+						return self.get_access_token(vendor, retries=retries-1)
+					# if this fails repeatedly, it's ok to leave them for now
+			
+			if self.bose_encrypted_access_token:
+				return secret_key.decrypt(self.bose_encrypted_access_token.encode()).decode()
+			return None
+		
+		elif vendor == SONOS_VENDOR_ID:
+			if self.sonos_encrypted_access_token:
+				return secret_key.decrypt(self.sonos_encrypted_access_token.encode()).decode()
+			return None
+		
 		return None
 
-	def set_access_token(self, access_token, retries=1):
-		self.encrypted_access_token = secret_key.encrypt(access_token.encode())
+	def set_access_token(self, access_token, vendor, retries=1):
 		try:
-			db.hset(f"user:{self.user_id}", "encrypted_access_token", self.encrypted_access_token)
+			if vendor == BOSE_VENDOR_ID:
+				self.bose_encrypted_access_token = secret_key.encrypt(access_token.encode())
+				db.hset(f"user:{self.user_id}", "bose_encrypted_access_token", self.bose_encrypted_access_token)
+			
+			elif vendor == SONOS_VENDOR_ID:
+				self.sonos_encrypted_access_token = secret_key.encrypt(access_token.encode())
+				db.hset(f"user:{self.user_id}", "sonos_encrypted_access_token", self.sonos_encrypted_access_token)
+
+			else:
+				return False
+
 		except ConnectionError:
-			logger.error(f"unable to set_access_token, retries remaining = {retries}")
+			logger.error(f"unable to set {vendor} access token, retries remaining = {retries}")
 			if retries > 0:
-				return self.set_access_token(access_token, retries=retries-1)
+				return self.set_access_token(access_token, vendor, retries=retries-1)
 			return False
 		return True
 
@@ -243,23 +347,38 @@ class User(UserMixin):
 			return False
 		return True
 
-	def clear_tokens(self, retries=1):
+	def clear_tokens(self, vendor, retries=1):
 		try:
 			# Create transaction
 			pipeline = db.pipeline()
+			
+			if vendor == BOSE_VENDOR_ID:
+				# Delete Bose refresh token
+				pipeline.hdel(f"user:{self.user_id}", "bose_encrypted_refresh_token")
+				self.bose_encrypted_refresh_token = None
 
-			# Delete refresh token
-			pipeline.hdel(f"user:{self.user_id}", "encrypted_refresh_token")
+				# Delete Bose access token
+				pipeline.hdel(f"user:{self.user_id}", "bose_encrypted_access_token")
+				self.bose_encrypted_access_token = None
 
-			# Delete access token
-			pipeline.hdel(f"user:{self.user_id}", "encrypted_access_token")
+			elif vendor == SONOS_VENDOR_ID:
+				# Delete Sonos refresh token
+				pipeline.hdel(f"user:{self.user_id}", "sonos_encrypted_refresh_token")
+				self.sonos_encrypted_refresh_token = None
+
+				# Delete Sonos access token
+				pipeline.hdel(f"user:{self.user_id}", "sonos_encrypted_access_token")
+				self.sonos_encrypted_access_token = None
+
+			else:
+				return False
 
 			# Execute transaction
 			pipeline.execute()
 		except ConnectionError:
-			logger.error(f"unable to clear_tokens, retries remaining = {retries}")
+			logger.error(f"unable to clear {vendor} tokens, retries remaining = {retries}")
 			if retries > 0:
-				return self.clear_tokens(retries=retries-1)
+				return self.clear_tokens(vendor, retries=retries-1)
 			return False
 		return True
 
