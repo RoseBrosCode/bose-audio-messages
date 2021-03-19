@@ -81,7 +81,7 @@ class User(UserMixin):
 		logger.debug(f"getting user from dict: {d}")
 		return User(d.get("user_id", None), d.get("username", None), d.get("password_hash", None), d.get("encrypted_provider_access_token", None),
 					d.get("acct_type", None), d.get("encrypted_refresh_token", None), d.get("encrypted_access_token", None), 
-					d.get("bose_encrypted_refresh_token", None), d.get("bose_encrypted_access_token", None),d.get("sonos_encrypted_refresh_token", None), d.get("sonos_encrypted_access_token", None), d.get("preferred_volume", None))
+					d.get("bose_encrypted_refresh_token", None), d.get("bose_encrypted_access_token", None), d.get("sonos_encrypted_refresh_token", None), d.get("sonos_encrypted_access_token", None), d.get("preferred_volume", None))
 
 	@staticmethod
 	def get_user_by_username(username, retries=1):
@@ -353,6 +353,7 @@ class User(UserMixin):
 			pipeline = db.pipeline()
 			
 			if vendor == BOSE_VENDOR_ID:
+				logger.debug(f"clearing Bose Tokens for {self.username}")
 				# Delete Bose refresh token
 				pipeline.hdel(f"user:{self.user_id}", "bose_encrypted_refresh_token")
 				self.bose_encrypted_refresh_token = None
@@ -362,6 +363,7 @@ class User(UserMixin):
 				self.bose_encrypted_access_token = None
 
 			elif vendor == SONOS_VENDOR_ID:
+				logger.debug(f"clearing Sonos Tokens for {self.username}")
 				# Delete Sonos refresh token
 				pipeline.hdel(f"user:{self.user_id}", "sonos_encrypted_refresh_token")
 				self.sonos_encrypted_refresh_token = None

@@ -3,76 +3,13 @@ This document outlines the steps planned to convert BAM from a Bose-only applica
 
 # TODO:
 ## Server Main Application (`main.py`)
-### Additions
-#### `@app.route('/manage')` and `manage_linked_accounts()` Route Handler
-This route will serve a page for the user to link or unlink their Bose and/or Sonos accounts. It will send to the client information about the state of those two account links. This will incorporate logic currently in `sb_login()`.
-
-#### `@app.route('/logout/sonos')` and `sonos_logout()` Route Handler
-This will call `clear_tokens('sonos')` on the current user and redirect to `/app` (which would then redirect to `/manage` if needed).
-
-### Deletions
-#### ~~`@app.route('/login/bose')` and `sb_login()` Route Handler~~
-This will be superceded by the new `/manage` route listed above.
-
 ### Modifications
-Imports will need to change to reflect updated filenames and methods from external files. Related, method usage throughout will need to be updated based on these updates, and variables in this file will likely need to be renamed appropriately.
-
-#### `landing()` Route Handler
-Instead of redirecting to `/login/bose` when a user is authenticated, redirect to the new `/manage` route listed above.
-
-#### `register()` Route Handler
-Already-authenticated users should be redirected to `/app`, which will handle a redirect to `/manage` if needed. This logic change is needed as we should not be overly biased to route users to `/manage` once they have at least one vendor linked.
-
-Upon successful registration, new users should be redirected to `/manage` instead of `/login/bose`.
-
-#### `bam_login()` Route Handler
-Already-authenticated users, **and** users that authenticate successfully, should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
-
-#### `google_auth()` Route Handler
-Users that authenticate successfully should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
-
-Upon successful registration, new users should be redirected to `/manage` instead of `/login/bose`.
-
-#### `fb_auth()` Route Handler
-Users that authenticate successfully should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
-
-Upon successful registration, new users should be redirected to `/manage` instead of `/login/bose`.
-
-#### `sb_logout()` --> `bose_logout()` Route Handler
-Note the name change of this method.
-
-The clear tokens method needs the Bose vendor argument.
-
-Once tokens have been cleared, users should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
-
-#### `auth_redirect()` Route Handler
-This method will need to use the `state` parameter of the OAuth flow to identify which vendor (Bose or Sonos) is providing the authorization code (by looking at the requestor host), and then get and set tokens for the user appropriately.
-
-#### `app_home()` Route Handler
-Evolve all token-checking logic to account for multiple speaker vendors.
-
-When needed, redirect to `/manage` instead of `/login/bose`.
-
-The product array should include all products the user has access too, across vendors if needed.
-
-The image name `for` loop can be removed along with use of `image_filenames`.
-
 #### `play_msg()` Route Handler
 Evolve all token-checking logic to account for multiple speaker vendors.
 
 When needed, redirect to `/manage` instead of `/login/bose`.
 
 Calls to send_audio_notification must be updated to include the `product_vendor` argument.
-
-### Noted Non-Changes
-The following are **unchanged**:
-- All of the app setup between the imports and the route definitions
-- `@app.route('/health')` and handler function
-- `@app.route('/logout/bam')` and handler function
-- `@app.route('/privacy')` and handler function
-
-## Client `images` Directory
-All images with filename starting with `eddie-black-` can be deleted.
 
 ## Client Template `app.html`
 ### Modifications
@@ -207,3 +144,69 @@ Add an if statement based on `vendor` that makes the call to the correct vendor'
 ### Methods Not Modified
 None - all are modified
 
+## Server Main Application (`main.py`)
+### Additions
+#### `@app.route('/manage')` and `manage_linked_accounts()` Route Handler
+This route will serve a page for the user to link or unlink their Bose and/or Sonos accounts. It will send to the client information about the state of those two account links. This will incorporate logic currently in `sb_login()`.
+
+#### `@app.route('/logout/sonos')` and `sonos_logout()` Route Handler
+This will call `clear_tokens('sonos')` on the current user and redirect to `/app` (which would then redirect to `/manage` if needed).
+
+### Deletions
+#### ~~`@app.route('/login/bose')` and `sb_login()` Route Handler~~
+This will be superceded by the new `/manage` route listed above.
+
+### Modifications
+Imports will need to change to reflect updated filenames and methods from external files. Related, method usage throughout will need to be updated based on these updates, and variables in this file will likely need to be renamed appropriately.
+
+#### `landing()` Route Handler
+Instead of redirecting to `/login/bose` when a user is authenticated, redirect to the `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described for `register()`.
+
+#### `register()` Route Handler
+Already-authenticated users should be redirected to `/app`, which will handle a redirect to `/manage` if needed. This logic change is needed as we should not be overly biased to route users to `/manage` once they have at least one vendor linked.
+
+Upon successful registration, new users should be redirected to `/manage` instead of `/login/bose`.
+
+#### `bam_login()` Route Handler
+Already-authenticated users, **and** users that authenticate successfully, should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
+
+#### `google_auth()` Route Handler
+Users that authenticate successfully should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
+
+Upon successful registration, new users should be redirected to `/manage` instead of `/login/bose`.
+
+#### `fb_auth()` Route Handler
+Users that authenticate successfully should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
+
+Upon successful registration, new users should be redirected to `/manage` instead of `/login/bose`.
+
+#### `sb_logout()` --> `bose_logout()` Route Handler
+Note the name change of this method.
+
+The clear tokens method needs the Bose vendor argument.
+
+Once tokens have been cleared, users should be redirected to `/app`, which will handle a redirect to `/manage` if needed, for the same reasons described in above for `register()`.
+
+#### `auth_redirect()` Route Handler
+This method will need to use the `state` parameter of the OAuth flow to identify which vendor (Bose or Sonos) is providing the authorization code, and then get and set tokens for the user appropriately.
+
+#### `app_home()` Route Handler
+Evolve all token-checking logic to account for multiple speaker vendors.
+
+When needed, redirect to `/manage` instead of `/login/bose`.
+
+The product array should include all products the user has access too, across vendors if needed.
+
+The image name `for` loop can be removed along with use of `image_filenames`.
+
+
+
+### Noted Non-Changes
+The following are **unchanged**:
+- All of the app setup between the imports and the route definitions
+- `@app.route('/health')` and handler function
+- `@app.route('/logout/bam')` and handler function
+- `@app.route('/privacy')` and handler function
+
+## Client `images` Directory
+All images with filename starting with `eddie-black-` can be deleted.

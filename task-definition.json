@@ -31,11 +31,11 @@
             "value": "DEBUG"
           },
           {
-            "name": "SB_API_VERSION",
+            "name": "BOSE_API_VERSION",
             "value": "0"
           },
           {
-            "name": "SB_REDIRECT_URL",
+            "name": "AUTH_REDIRECT_URL",
             "value": "http://bam-demo.com/auth"
           }
         ],
@@ -47,11 +47,19 @@
         "secrets": [
           {
             "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/sb-client-id",
-            "name": "SB_CLIENT_ID"
+            "name": "BOSE_CLIENT_ID"
           },
           {
             "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/sb-secret",
-            "name": "SB_SECRET"
+            "name": "BOSE_SECRET"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/sonos-client-id",
+            "name": "SONOS_CLIENT_ID"
+          },
+          {
+            "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/sonos-secret",
+            "name": "SONOS_SECRET"
           },
           {
             "valueFrom": "arn:aws:ssm:us-east-2:605384816250:parameter/bam-demo-deploy/session-key",

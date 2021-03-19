@@ -22,6 +22,7 @@ buttons.addEventListener("mouseup", notPressingDown, false);
 
 buttons.addEventListener("touchstart", pressingDown, false);
 buttons.addEventListener("touchend", notPressingDown, false);
+
 document.oncontextmenu = function () { return false; };
 
 window.onload = function () {
@@ -62,15 +63,15 @@ function preventMenu(e) {
 
 function pressingDown(e) {
 	e.preventDefault();
-	e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-getting-ready.png";
+	document.getElementById(e.target.id + "_label").textContent = "GETTING READY ⏳";
 	recorder.start().then(function() {
-		e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-recording.png";
+		document.getElementById(e.target.id + "_label").textContent = "RECORDING 🎙️";
 	});
 }
 
 function notPressingDown(e) {
 	activeProduct = e.target;
-	e.target.src = window.staticFilepath + "images/" + $(e.target).attr("imageName") + "-sending.png";
+	document.getElementById(e.target.id + "_label").textContent = "SENDING 📡";
 
 	// Stop recording
 	var stopFunction = function() {
@@ -102,6 +103,7 @@ function notPressingDown(e) {
 						"origin": "BAM Web App",
 						"key": filename,
 						"target_product": activeProduct.id,
+						"vendor": activeProduct.dataset.vendor,
 						"url": data.Location,
 						"volume": volumeSlider.slider('getValue')
 					}
@@ -114,10 +116,10 @@ function notPressingDown(e) {
 						})
 
 					}).then(() => {
-						$(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + "-sent.png";
+						document.getElementById(activeProduct.id + "_label").textContent = "SENT! 🎉";
 
 						setTimeout(() => {
-							$(`#${activeProduct.id}`)[0].src = window.staticFilepath + "images/" + $(activeProduct).attr("imageName") + ".png";
+							document.getElementById(activeProduct.id + "_label").textContent = document.getElementById(activeProduct.id + "_label").dataset.originalValue;
 						}, 5000);
 					});
 
