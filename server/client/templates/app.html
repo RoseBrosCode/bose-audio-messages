@@ -38,10 +38,10 @@
 				<div class="row justify-content-center pb-4">
 					<span id="{{ product.product_id + '_label' }}" data-original-value="{{ product.product_name }}" style="font-weight: bold;">{{ product.product_name }}</span>
 				</div>
-				<div class="row justify-content-center pb-4">
+				<div class="row justify-content-center pb-4 product">
 					<input type="image" id="{{ product.product_id }}" value="{{ product.product_name }}"
 						src="{{ url_for('static', filename='images/speaker-icon.png') }}"
-						data-vendor="{{ product.vendor }}"						
+						data-vendor="{{ product.vendor }}"
 						height="220px" width="220px">
 				</div>
 				{% endfor %}

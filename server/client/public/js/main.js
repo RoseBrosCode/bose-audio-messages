@@ -1,7 +1,7 @@
 // Original sample code from https://www.kirupa.com/html5/press_and_hold.htm
 // also useful https://www.kirupa.com/html5/handling_events_for_many_elements.htm 
 
-var buttons = document.querySelector("#buttons");
+var buttons = document.querySelectorAll('[data-vendor]'); // only select the inputs themselves; they're the only thing with this attribute
 var recorder;
 var filename;
 var activeProduct;
@@ -16,12 +16,14 @@ var awsConfig = new AWS.Config({
 });
 AWS.config.update(awsConfig);
 
-// Listening for the mouse and touch events    
-buttons.addEventListener("mousedown", pressingDown, false);
-buttons.addEventListener("mouseup", notPressingDown, false);
+// Listening for the mouse and touch events
+for (const button of buttons) {
+	button.addEventListener("mousedown", pressingDown, false);
+	button.addEventListener("mouseup", notPressingDown, false);
 
-buttons.addEventListener("touchstart", pressingDown, false);
-buttons.addEventListener("touchend", notPressingDown, false);
+	button.addEventListener("touchstart", pressingDown, false);
+	button.addEventListener("touchend", notPressingDown, false);
+}    
 
 document.oncontextmenu = function () { return false; };
 

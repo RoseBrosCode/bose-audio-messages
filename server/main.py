@@ -263,7 +263,7 @@ def auth_redirect():
 @app.route('/app')
 @login_required
 def app_home():
-    
+
     if current_user.get_refresh_token(BOSE_VENDOR_ID) is None and current_user.get_refresh_token(SONOS_VENDOR_ID) is None:
         return redirect(url_for('manage_linked_accounts'))
 
@@ -290,34 +290,35 @@ def play_msg():
     requested_msg = request.get_json()
     logger.debug(requested_msg)
 
+    if requested_msg['vendor'] == BOSE_VENDOR_ID and current_user.get_refresh_token(BOSE_VENDOR_ID):
+        access_token = current_user.get_access_token(BOSE_VENDOR_ID)
+        refresh_token = current_user.get_refresh_token(BOSE_VENDOR_ID)
+
+    elif requested_msg['vendor'] == SONOS_VENDOR_ID and current_user.get_refresh_token(SONOS_VENDOR_ID):
+        access_token = current_user.get_access_token(SONOS_VENDOR_ID)
+        refresh_token = current_user.get_refresh_token(SONOS_VENDOR_ID)
+
+    else: 
+        current_user.clear_tokens(requested_msg['vendor'])
+        return redirect(url_for('manage_linked_accounts'))
+
+    an_res = send_audio_notification(access_token, refresh_token, requested_msg['vendor'], requested_msg['target_product'], requested_msg['url'], desired_volume=requested_msg['volume'])
+
+    if an_res is None:
+        # there was an auth issue; redirect to /app, which will redirect to /manage if needed
+        return redirect(url_for('app_home'))
+
+    if an_res.status_code not in [200, 202]:
+        # a non-auth issue happened; log it, but otherwise return OK. TODO - better notify the user
+        logger.error(f"Something went wrong when sending the Audio Notification, status code {an_res.status_code}")
+        logger.error(f"Error response body: {an_res.json()}")
+
+    # update the preferred volume 
+    if requested_msg['volume'] != current_user.preferred_volume:
+        current_user.set_preferred_volume(requested_msg['volume'])
+
     # tell the browser all was fine
     return "", 204
-
-    # access_token = current_user.get_access_token()
-    # if access_token:
-    #     an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'], volume=requested_msg['volume'])
-    #     if an_res.status_code == 403:
-    #         refresh_token = current_user.get_refresh_token()
-    #         if refresh_token:
-    #             access_token = refresh_sb_token(refresh_token)
-    #             if access_token is None:
-    #                 current_user.clear_tokens()
-    #                 return redirect(url_for('sb_login'))
-    #             current_user.set_access_token(access_token)
-    #             an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'], volume=requested_msg['volume'])
-    #         else:
-    #             return redirect(url_for('sb_login'))
-
-    #     logger.debug(an_res.json())
-
-    #     # update the preferred volume 
-    #     if requested_msg['volume'] != current_user.preferred_volume:
-    #         current_user.set_preferred_volume(requested_msg['volume'])
-
-    #     # tell the browser all was fine
-    #     return "", 204
-                
-    # return redirect(url_for('sb_login'))
 
 @app.route('/privacy')
 def privacy():

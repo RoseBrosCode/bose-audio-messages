@@ -2,15 +2,6 @@
 This document outlines the steps planned to convert BAM from a Bose-only application to one that supports Bose and Sonos.
 
 # TODO:
-## Server Main Application (`main.py`)
-### Modifications
-#### `play_msg()` Route Handler
-Evolve all token-checking logic to account for multiple speaker vendors.
-
-When needed, redirect to `/manage` instead of `/login/bose`.
-
-Calls to send_audio_notification must be updated to include the `product_vendor` argument.
-
 ## Client Template `app.html`
 ### Modifications
 Update speaker visual presentation to move away from current image-based system and to a icon-based system.
@@ -18,22 +9,6 @@ Update speaker visual presentation to move away from current image-based system 
 Users will tap the icon as they tapped the image before. Product name will now be ABOVE the icon, and the product name will update to hold the status images (instead of them being in the image).
 
 Product vendor will need to be added as an attribute to the product image
-
-## Client Template `base.html`
-### Modifications
-In the footer, change the Bose Unlink link to a more generic Manage Linked Accounts link and have it link to `/manage` instead of `/logout/bose`.
-
-## Client Template `bose-link.html` --> `manage.html`
-Note the name change of this template.
-
-### Modifications
-Update this to provide link options to both Bose and Sonos, and also to provide unlink options when an account is linked.
-
-## Client `main.js`
-### Modifications
-Wherever images are swapped out to update status, make updates to enable new UX outlined in the `app.html` modifications listed above.
-
-Also, need to update the audio notification message POST to include vendor name. 
 
 # DONE
 ## Naming and Copy
@@ -199,7 +174,12 @@ The product array should include all products the user has access too, across ve
 
 The image name `for` loop can be removed along with use of `image_filenames`.
 
+#### `play_msg()` Route Handler
+Evolve all token-checking logic to account for multiple speaker vendors.
 
+When needed, redirect to `/manage` instead of `/login/bose`.
+
+Calls to send_audio_notification must be updated to include the `product_vendor` argument.
 
 ### Noted Non-Changes
 The following are **unchanged**:
@@ -210,3 +190,19 @@ The following are **unchanged**:
 
 ## Client `images` Directory
 All images with filename starting with `eddie-black-` can be deleted.
+
+## Client Template `base.html`
+### Modifications
+In the footer, change the Bose Unlink link to a more generic Manage Linked Accounts link and have it link to `/manage` instead of `/logout/bose`.
+
+## Client Template `bose-link.html` --> `manage.html`
+Note the name change of this template.
+
+### Modifications
+Update this to provide link options to both Bose and Sonos, and also to provide unlink options when an account is linked.
+
+## Client `main.js`
+### Modifications
+Wherever images are swapped out to update status, make updates to enable new UX outlined in the `app.html` modifications listed above.
+
+Also, need to update the audio notification message POST to include vendor name. 

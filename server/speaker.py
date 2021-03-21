@@ -76,8 +76,10 @@ def get_products():
 			bose_products_res = requests.get('https://partners.api.bose.io/products', headers=bose_headers)
 			logger.debug(bose_products_res.json())
 
-			# If 403, then access token expired
-			if bose_products_res.status_code == 403:
+			# If not successful, then access token probably expired, or some other issue
+			if bose_products_res.status_code != 200:
+				logger.error(f'Bose API Unsuccessful Response: {bose_products_res.status_code}')
+				logger.error(f'Error Message: {bose_products_res.json()}')
 				access_token = get_refreshed_access_token(linked_vendors[vendor]['refresh'], vendor)
 				if access_token is None:
 					current_user.clear_tokens(BOSE_VENDOR_ID)
@@ -107,8 +109,10 @@ def get_products():
 			# Eventual TODO - let a user pick their household. For now just take the first in the list
 			sonos_household_res = requests.get('https://api.ws.sonos.com/control/api/v1/households', headers=sonos_headers)
 			logger.debug(sonos_household_res.json())
-			# If 401, then access token expired
-			if sonos_household_res.status_code == 401:
+			# If not successful, then access token probably expired, or some other issue
+			if sonos_household_res.status_code != 200:
+				logger.error(f'Sonos API Unsuccessful Response: {sonos_household_res.status_code}')
+				logger.error(f'Error Message: {sonos_household_res.json()}')
 				access_token = get_refreshed_access_token(linked_vendors[vendor]['refresh'], vendor)
 				if access_token is None:
 					current_user.clear_tokens(SONOS_VENDOR_ID)
@@ -156,8 +160,10 @@ def send_audio_notification(access_token, refresh_token, vendor, product_id, msg
 
 		bose_an_res = requests.post(f'https://partners.api.bose.io/products/{product_id}/content/notify', headers=bose_headers, json=bose_an_data)
 
-		# If 403, then access token expired
-		if bose_an_res.status_code == 403:
+		# If not successful, then access token probably expired, or some other issue
+		if bose_an_res.status_code != 202:
+			logger.error(f'Bose API Unsuccessful Response: {bose_an_res.status_code}')
+			logger.error(f'Error Message: {bose_an_res.json()}')
 			access_token = get_refreshed_access_token(refresh_token, vendor)
 			if access_token is None:
 				current_user.clear_tokens(BOSE_VENDOR_ID)
@@ -183,17 +189,20 @@ def send_audio_notification(access_token, refresh_token, vendor, product_id, msg
 		if desired_volume is not None:
 			sonos_an_data.update({'volume': desired_volume})
 
-		sonos_an_res = requests.get(f'https://api.ws.sonos.com/control/api/v1/players/{product_id}/audioClip', headers=sonos_headers, json=sonos_an_data)
+		sonos_an_res = requests.post(f'https://api.ws.sonos.com/control/api/v1/players/{product_id}/audioClip', headers=sonos_headers, json=sonos_an_data)
 
-		# If 401, then access token expired
-		if sonos_an_res.status_code == 401:
+		# If not successful, then access token probably expired, or some other issue
+		if sonos_an_res.status_code != 200:
+			logger.error(f'Sonos API Unsuccessful Response: {sonos_an_res.status_code}')
+			logger.error(f'Error Message: {sonos_an_res.json()}')
 			access_token = get_refreshed_access_token(refresh_token, vendor)
 			if access_token is None:
 				current_user.clear_tokens(SONOS_VENDOR_ID)
+				return None
 			else:
 				current_user.set_access_token(access_token, SONOS_VENDOR_ID)
 				sonos_headers.update({'Authorization': 'Bearer ' + access_token})
-				sonos_an_res = requests.get(f'https://api.ws.sonos.com/control/api/v1/players/{product_id}/audioClip', headers=sonos_headers, json=sonos_an_data)
+				sonos_an_res = requests.post(f'https://api.ws.sonos.com/control/api/v1/players/{product_id}/audioClip', headers=sonos_headers, json=sonos_an_data)
 
 		return sonos_an_res	
 	
