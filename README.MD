@@ -3,9 +3,9 @@ Tap and hold a product to record and send a quick audio message to a Bose or Son
 
 ### TODO
 Loosely in priority order below
-- Genericize to include Sonos (zwr)
+- ~Genericize to include Sonos (zwr)~
 - add tests (zwr)
 - add loading spinners for social login buttons (zwr)
 - make this README better
-- improve error communication to users
+- improve error communication to users (zwr)
 

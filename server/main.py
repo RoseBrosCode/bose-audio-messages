@@ -205,20 +205,19 @@ def manage_linked_accounts():
     }
 
     # Attempt to get refresh tokens for both vendor accounts
-    bose_refresh_token = current_user.get_refresh_token(BOSE_VENDOR_ID)
-    sonos_refresh_token = current_user.get_refresh_token(SONOS_VENDOR_ID)
-
-    if bose_refresh_token:
-        vendor_linked_state.update({BOSE_VENDOR_ID: True})
-
-    if sonos_refresh_token:
-        vendor_linked_state.update({SONOS_VENDOR_ID: True})
+    for vendor_id in VENDOR_ID_LIST:
+        vendor_linked_state.update({vendor_id: True if current_user.get_refresh_token(vendor_id) else False})
 
     if current_user.acct_type is None:
         repair_acct_type(current_user, silent=True)
 
-    bose_auth_url = f"https://partners.api.bose.io/auth/oauth/authorize?response_type=code&client_id={ os.environ['BOSE_CLIENT_ID'] }&redirect_uri={ os.environ['AUTH_REDIRECT_URL'] }&scope=owned_products_all&state=" + BOSE_VENDOR_ID
-    sonos_auth_url = f"https://api.sonos.com/login/v3/oauth/authorize?client_id={ os.environ['SONOS_CLIENT_ID'] }&response_type=code&state=" + SONOS_VENDOR_ID + f"&redirect_uri={ os.environ['AUTH_REDIRECT_URL'] }&scope=playback-control-all"
+    bose_auth_url = BOSE_AUTH_URL_TEMPLATE.format(client_id=os.environ['BOSE_CLIENT_ID'], 
+                                                    redirect_uri=os.environ['AUTH_REDIRECT_URL'], 
+                                                    state=BOSE_VENDOR_ID)
+
+    sonos_auth_url = SONOS_AUTH_URL_TEMPLATE.format(client_id=os.environ['SONOS_CLIENT_ID'], 
+                                                    redirect_uri=os.environ['AUTH_REDIRECT_URL'], 
+                                                    state=SONOS_VENDOR_ID)
 
     # Show the Manage pate
     return render_template('manage.html', vendor_linked_state=vendor_linked_state, bose_auth_url=bose_auth_url, sonos_auth_url=sonos_auth_url, BOSE_VENDOR_ID=BOSE_VENDOR_ID, SONOS_VENDOR_ID=SONOS_VENDOR_ID)
@@ -240,22 +239,26 @@ def sonos_logout():
 @app.route('/auth')
 def auth_redirect():
     authorizing_vendor = request.args['state']
+    token_data = {'grant_type': 'authorization_code', 'code': request.args['code'], 'redirect_uri': os.environ['AUTH_REDIRECT_URL']}
 
     if authorizing_vendor == BOSE_VENDOR_ID:
         # get Bose tokens and put in session
         bose_token_headers = {'Authorization': 'Basic ' + b64encode_str(os.environ['BOSE_CLIENT_ID'] + ':' + os.environ['BOSE_SECRET'])}
-        bose_token_data = {'grant_type': 'authorization_code', 'code': request.args['code'], 'redirect_uri': os.environ['AUTH_REDIRECT_URL']}
-        tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=bose_token_headers, data=bose_token_data)
-        current_user.set_refresh_token(tokens.json()['refresh_token'], BOSE_VENDOR_ID)
-        current_user.set_access_token(tokens.json()['access_token'], BOSE_VENDOR_ID)
+        tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=bose_token_headers, data=token_data)
+        
 
-    if authorizing_vendor == SONOS_VENDOR_ID:
+    elif authorizing_vendor == SONOS_VENDOR_ID:
         # get Sonos tokens and put in session
         sonos_token_headers = {'Authorization': 'Basic ' + b64encode_str(os.environ['SONOS_CLIENT_ID'] + ':' + os.environ['SONOS_SECRET'])}
-        sonos_token_data = {'grant_type': 'authorization_code', 'code': request.args['code'], 'redirect_uri': os.environ['AUTH_REDIRECT_URL']}
-        tokens = requests.post('https://api.sonos.com/login/v3/oauth/access', headers=sonos_token_headers, data=sonos_token_data)
-        current_user.set_refresh_token(tokens.json()['refresh_token'], SONOS_VENDOR_ID)
-        current_user.set_access_token(tokens.json()['access_token'], SONOS_VENDOR_ID)
+        tokens = requests.post('https://api.sonos.com/login/v3/oauth/access', headers=sonos_token_headers, data=token_data)
+
+    else:
+        # something went wrong - TODO better error messaging
+        return redirect(url_for('manage_linked_accounts'))
+
+    # Set tokens for the user
+    current_user.set_refresh_token(tokens.json()['refresh_token'], authorizing_vendor)
+    current_user.set_access_token(tokens.json()['access_token'], authorizing_vendor)
 
     # Redirect to app
     return redirect(url_for('app_home'))
@@ -271,6 +274,7 @@ def app_home():
     logger.debug(f"products: {products_array}")
 
     if not products_array: # products array came back empty - likely an auth issue, so clear tokens and have the user re-auth
+        # TODO improve this to be a less "nuclear" error handling scenario as noted https://github.com/RoseBrosCode/bose-audio-messages/pull/16#discussion_r600026710
         current_user.clear_tokens(BOSE_VENDOR_ID)
         current_user.clear_tokens(SONOS_VENDOR_ID)
         return redirect(url_for('manage_linked_accounts'))
@@ -290,15 +294,15 @@ def play_msg():
     requested_msg = request.get_json()
     logger.debug(requested_msg)
 
-    if requested_msg['vendor'] == BOSE_VENDOR_ID and current_user.get_refresh_token(BOSE_VENDOR_ID):
-        access_token = current_user.get_access_token(BOSE_VENDOR_ID)
-        refresh_token = current_user.get_refresh_token(BOSE_VENDOR_ID)
+    if requested_msg['vendor'] not in VENDOR_ID_LIST:
+        # somehow a non-supported vendor came in, redirect back to app
+        return redirect(url_for('app_home'))
 
-    elif requested_msg['vendor'] == SONOS_VENDOR_ID and current_user.get_refresh_token(SONOS_VENDOR_ID):
-        access_token = current_user.get_access_token(SONOS_VENDOR_ID)
-        refresh_token = current_user.get_refresh_token(SONOS_VENDOR_ID)
+    access_token = current_user.get_access_token(requested_msg['vendor'])
+    refresh_token = current_user.get_refresh_token(requested_msg['vendor'])
 
-    else: 
+    if not refresh_token:
+        # no valid account for this vendor, need to log in again
         current_user.clear_tokens(requested_msg['vendor'])
         return redirect(url_for('manage_linked_accounts'))
 
