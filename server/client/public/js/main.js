@@ -38,6 +38,21 @@ window.onload = function () {
 
 	// Attempt a recording to prompt user to allow audio
 	recorder.start().then(() => {
+		// Check audio context sampleRate
+		let sampleRate = recorder.context.sampleRate;
+		if (sampleRate === 44100 || sampleRate === 48000) {
+			// Fetch prefix audio file
+			fetch(window.staticFilepath + `audio/chime-${sampleRate}.mp3`)
+				.then(function (response) {
+					return response.blob();
+				}).then(function (blob) {
+					prefixBlob = blob;
+				});
+		} else {
+			// TODO: prompt user somehow
+			console.error("unable to append chime to recording with sample rate", sampleRate);
+		}
+
 		// User allowed audio, stop recording
 		recorder.stop();
 	}).catch((e) => {
@@ -45,14 +60,6 @@ window.onload = function () {
 		// TODO: prompt user somehow
 		console.error(e);
 	});
-
-	// Fetch prefix audio file
-	fetch(window.staticFilepath + "audio/chime.mp3")
-		.then(function(response) {
-			return response.blob();
-		}).then(function(blob) {
-			prefixBlob = blob;
-		});
 };
 
 function preventMenu(e) {
