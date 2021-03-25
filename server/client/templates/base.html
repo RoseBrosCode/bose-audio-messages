@@ -3,7 +3,7 @@
 
 <head>
 	{% block head %}
-	<title>Bose Audio Messages</title>
+	<title>Brief Audio Messages</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<meta name="google-signin-client_id" content="890422466742-vchhgjnvehtpn7lasl03arlnrtjco9c7.apps.googleusercontent.com">
@@ -48,7 +48,7 @@
 			</a>
 		</div>
 		<div class="row justify-content-center pt-4">
-			<h2 style="font-weight: bold;" class="mx-auto center">Bose Audio Messages</h2>
+			<h2 style="font-weight: bold;" class="mx-auto center">Brief Audio Messages</h2>
 		</div>
 	</div>
 	{% block body %}{% endblock %}
@@ -58,12 +58,15 @@
 				<p class="mx-auto center mb-1">Currently signed into BAM as <span style="font-weight: bold;">{{ current_user.username }}</span></p>
 			</div>
 			<div class="row justify-content-center">
-				<p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM</a>{% if current_user.encrypted_refresh_token is not none %} <span style="font-size: 24px; font-weight: bold;">|</span> <a href="{{ url_for('sb_logout') }}">Unlink Bose Account</a>{% endif %}</p>
+				<p class="mx-auto center"><a href="{{ url_for('bam_logout') }}">Sign out of BAM</a><span style="font-size: 24px; font-weight: bold;"> |</span> <a href="{{ url_for('manage_linked_accounts') }}">Manage Linked Accounts</a></p>
 			</div>
 		{% endif %}
 		<hr>
 		<div class="row justify-content-center">
 			<p class="mx-auto center">A RoseBrosCode project.</p>
+		</div>
+		<div class="row justify-content-center">
+			<p class="mx-auto center">Icons made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></p>
 		</div>
 	</div>
 	{% block bottomscripts %}{% endblock %}

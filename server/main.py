@@ -23,12 +23,11 @@ dictConfig({
     }
 })
 
-from switchboard import get_products, refresh_sb_token, send_audio_notification
+from speaker import get_products, send_audio_notification
 from util import b64encode_str
 from constants import *
 from user import User, validate_google_user, repair_acct_type, validate_facebook_user
 from forms import LoginForm, RegistrationForm
-from images import get_product_image_name_and_filenames
 
 # Use reverse proxy to ensure url_for populates with the correct scheme
 class ReverseProxied(object):
@@ -71,27 +70,27 @@ def health():
 @app.route('/')
 def landing():
     if current_user.is_authenticated:
-        return redirect(url_for('sb_login'))
+        return redirect(url_for('app_home'))
     return render_template('landing.html')
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('sb_login'))
+        return redirect(url_for('app_home'))
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User.create_user(form.username.data, form.password.data)
         logger.info(f"created user: {user}")
         login_user(user, remember=True)
-        return redirect(url_for('sb_login'))
+        return redirect(url_for('manage_linked_accounts'))
     return render_template('register.html', form=form)
 
 @app.route('/login', methods=['GET', 'POST'])
 def bam_login():
-    # If user is login, see if they're logged into Switchboard
+    # If user is logged in, send them to the main app
     if current_user.is_authenticated:
-        return redirect(url_for('sb_login'))
+        return redirect(url_for('app_home'))
 
     # If user submitted a login form, attempt to log them in
     form = LoginForm()
@@ -106,7 +105,7 @@ def bam_login():
         if user.acct_type is None:
             user = repair_acct_type(user)
         login_user(user, remember=True)
-        return redirect(url_for('sb_login'))
+        return redirect(url_for('app_home'))
 
     # Serve login page if not already logged in
     return render_template('login.html', form=form)
@@ -135,7 +134,7 @@ def google_auth():
 
             logger.debug("logging in already registered google user")
             login_user(user, remember=True)
-            return redirect(url_for('sb_login'))
+            return redirect(url_for('app_home'))
 
         # otherwise register the new user and log them in
         new_user = User.create_user(google_email, provider_access_token=payload['g_token'], acct_type=GOOGLE_ACCT_TYPE)
@@ -145,7 +144,7 @@ def google_auth():
 
         logger.info(f"created google user: {new_user}")
         login_user(new_user, remember=True)
-        return redirect(url_for('sb_login'))
+        return redirect(url_for('manage_linked_accounts'))
 
     logger.debug("Unknown google auth error.")
     return redirect(url_for('register'))
@@ -175,7 +174,7 @@ def fb_auth():
 
             logger.debug("logging in already registered facebook user")
             login_user(user, remember=True)
-            return redirect(url_for('sb_login'))
+            return redirect(url_for('app_home'))
 
         # otherwise register the new user and log them in
         new_user = User.create_user(fb_email, acct_type=FB_ACCT_TYPE)
@@ -185,7 +184,7 @@ def fb_auth():
 
         logger.info(f"created facebook user: {new_user}")
         login_user(new_user, remember=True)
-        return redirect(url_for('sb_login'))
+        return redirect(url_for('manage_linked_accounts'))
 
 
     logger.debug("Unknown facebook auth error.")
@@ -196,38 +195,70 @@ def bam_logout():
     logout_user()
     return redirect(url_for('bam_login'))
 
-@app.route('/login/bose')
+@app.route('/manage')
 @login_required
-def sb_login():
-    refresh_token = current_user.get_refresh_token()
-    if refresh_token:
-        return redirect(url_for('app_home'))
+def manage_linked_accounts():
+    # Establish dict assuming neither vendor is linked
+    vendor_linked_state = {
+        BOSE_VENDOR_ID: False,
+        SONOS_VENDOR_ID: False
+    }
 
-    client_id = os.environ['SB_CLIENT_ID']
-    redirect_url = os.environ['SB_REDIRECT_URL']
+    # Attempt to get refresh tokens for both vendor accounts
+    for vendor_id in VENDOR_ID_LIST:
+        vendor_linked_state.update({vendor_id: True if current_user.get_refresh_token(vendor_id) else False})
 
     if current_user.acct_type is None:
         repair_acct_type(current_user, silent=True)
 
-    # First time? Get the login button
-    return render_template('bose-link.html', client_id=client_id, redirect_url=redirect_url)
+    bose_auth_url = BOSE_AUTH_URL_TEMPLATE.format(client_id=os.environ['BOSE_CLIENT_ID'], 
+                                                    redirect_uri=os.environ['AUTH_REDIRECT_URL'], 
+                                                    state=BOSE_VENDOR_ID)
+
+    sonos_auth_url = SONOS_AUTH_URL_TEMPLATE.format(client_id=os.environ['SONOS_CLIENT_ID'], 
+                                                    redirect_uri=os.environ['AUTH_REDIRECT_URL'], 
+                                                    state=SONOS_VENDOR_ID)
+
+    # Show the Manage pate
+    return render_template('manage.html', vendor_linked_state=vendor_linked_state, bose_auth_url=bose_auth_url, sonos_auth_url=sonos_auth_url, BOSE_VENDOR_ID=BOSE_VENDOR_ID, SONOS_VENDOR_ID=SONOS_VENDOR_ID)
 
 @app.route('/logout/bose')
 @login_required
-def sb_logout():
+def bose_logout():
     # Disassociate the Bose Account from the BAM Account
-    current_user.clear_tokens()
-    return redirect(url_for('sb_login'))
+    current_user.clear_tokens(BOSE_VENDOR_ID)
+    return redirect(url_for('app_home'))
+
+@app.route('/logout/sonos')
+@login_required
+def sonos_logout():
+    # Disassociate the Sonos Account from the BAM Account
+    current_user.clear_tokens(SONOS_VENDOR_ID)
+    return redirect(url_for('app_home'))
 
 @app.route('/auth')
 def auth_redirect():
-    # get Switchboard tokens and put in session
-    t_auth_header = 'Basic ' + b64encode_str(os.environ['SB_CLIENT_ID'] + ':' + os.environ['SB_SECRET'])
-    t_headers = {'Authorization': t_auth_header}
-    t_data = {'grant_type': 'authorization_code', 'code': request.args['code'], 'redirect_uri': os.environ['SB_REDIRECT_URL']}
-    tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=t_headers, data=t_data)
-    current_user.set_refresh_token(tokens.json()['refresh_token'])
-    current_user.set_access_token(tokens.json()['access_token'])
+    authorizing_vendor = request.args['state']
+    token_data = {'grant_type': 'authorization_code', 'code': request.args['code'], 'redirect_uri': os.environ['AUTH_REDIRECT_URL']}
+
+    if authorizing_vendor == BOSE_VENDOR_ID:
+        # get Bose tokens and put in session
+        bose_token_headers = {'Authorization': 'Basic ' + b64encode_str(os.environ['BOSE_CLIENT_ID'] + ':' + os.environ['BOSE_SECRET'])}
+        tokens = requests.post('https://partners.api.bose.io/auth/oauth/token', headers=bose_token_headers, data=token_data)
+        
+
+    elif authorizing_vendor == SONOS_VENDOR_ID:
+        # get Sonos tokens and put in session
+        sonos_token_headers = {'Authorization': 'Basic ' + b64encode_str(os.environ['SONOS_CLIENT_ID'] + ':' + os.environ['SONOS_SECRET'])}
+        tokens = requests.post('https://api.sonos.com/login/v3/oauth/access', headers=sonos_token_headers, data=token_data)
+
+    else:
+        # something went wrong - TODO better error messaging
+        return redirect(url_for('manage_linked_accounts'))
+
+    # Set tokens for the user
+    current_user.set_refresh_token(tokens.json()['refresh_token'], authorizing_vendor)
+    current_user.set_access_token(tokens.json()['access_token'], authorizing_vendor)
 
     # Redirect to app
     return redirect(url_for('app_home'))
@@ -235,47 +266,27 @@ def auth_redirect():
 @app.route('/app')
 @login_required
 def app_home():
-    access_token = current_user.get_access_token()
-    if access_token:
-        products_res = get_products(access_token)
-        if products_res.status_code == 403:
-            refresh_token = current_user.get_refresh_token()
-            if refresh_token:
-                access_token = refresh_sb_token(refresh_token)
-                if access_token is None:
-                    current_user.clear_tokens()
-                    return redirect(url_for('sb_login'))
-                current_user.set_access_token(access_token)
-                products_res = get_products(access_token)
-            else:
-                return redirect(url_for('sb_login'))
-                
-        products_array = products_res.json()['results']
-        logger.debug(f"products: {products_array}")
 
-        client_products = []
-        image_filenames = []
-        for p in products_array:
-            image_name, product_image_filenames = get_product_image_name_and_filenames('Bose Home Speaker 500')
-            # TODO: image_name, product_image_filenames = get_product_image_name_and_filenames(p['productType'])
-            image_filenames += product_image_filenames
-            client_products.append({
-                'product_id': p['productID'],
-                'product_name': p['productName'],
-                'image_name': 'eddie-black' # TODO: image_name
-            })
-        
-        if current_user.preferred_volume is None:
-            current_user.set_preferred_volume(DEFAULT_PREFERRED_VOLUME)
+    if current_user.get_refresh_token(BOSE_VENDOR_ID) is None and current_user.get_refresh_token(SONOS_VENDOR_ID) is None:
+        return redirect(url_for('manage_linked_accounts'))
 
-        if current_user.acct_type is None:
-            repair_acct_type(current_user, silent=True)
+    products_array = get_products()
+    logger.debug(f"products: {products_array}")
 
-        # List the products
-        return render_template('app.html', products=client_products, image_filenames=set(image_filenames))
-                
-    else:
-        return redirect(url_for('sb_login'))
+    if not products_array: # products array came back empty - likely an auth issue, so clear tokens and have the user re-auth
+        # TODO improve this to be a less "nuclear" error handling scenario as noted https://github.com/RoseBrosCode/bose-audio-messages/pull/16#discussion_r600026710
+        current_user.clear_tokens(BOSE_VENDOR_ID)
+        current_user.clear_tokens(SONOS_VENDOR_ID)
+        return redirect(url_for('manage_linked_accounts'))
+    
+    if current_user.preferred_volume is None:
+        current_user.set_preferred_volume(DEFAULT_PREFERRED_VOLUME)
+
+    if current_user.acct_type is None:
+        repair_acct_type(current_user, silent=True)
+
+    # Render the app with the products
+    return render_template('app.html', products=products_array)
 
 @app.route('/send', methods=['POST'])
 @login_required
@@ -283,31 +294,35 @@ def play_msg():
     requested_msg = request.get_json()
     logger.debug(requested_msg)
 
-    access_token = current_user.get_access_token()
-    if access_token:
-        an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'], volume=requested_msg['volume'])
-        if an_res.status_code == 403:
-            refresh_token = current_user.get_refresh_token()
-            if refresh_token:
-                access_token = refresh_sb_token(refresh_token)
-                if access_token is None:
-                    current_user.clear_tokens()
-                    return redirect(url_for('sb_login'))
-                current_user.set_access_token(access_token)
-                an_res = send_audio_notification(access_token, requested_msg['target_product'], requested_msg['url'], volume=requested_msg['volume'])
-            else:
-                return redirect(url_for('sb_login'))
+    if requested_msg['vendor'] not in VENDOR_ID_LIST:
+        # somehow a non-supported vendor came in, redirect back to app
+        return redirect(url_for('app_home'))
 
-        logger.debug(an_res.json())
+    access_token = current_user.get_access_token(requested_msg['vendor'])
+    refresh_token = current_user.get_refresh_token(requested_msg['vendor'])
 
-        # update the preferred volume 
-        if requested_msg['volume'] != current_user.preferred_volume:
-            current_user.set_preferred_volume(requested_msg['volume'])
+    if not refresh_token:
+        # no valid account for this vendor, need to log in again
+        current_user.clear_tokens(requested_msg['vendor'])
+        return redirect(url_for('manage_linked_accounts'))
 
-        # tell the browser all was fine
-        return "", 204
-                
-    return redirect(url_for('sb_login'))
+    an_res = send_audio_notification(access_token, refresh_token, requested_msg['vendor'], requested_msg['target_product'], requested_msg['url'], desired_volume=requested_msg['volume'])
+
+    if an_res is None:
+        # there was an auth issue; redirect to /app, which will redirect to /manage if needed
+        return redirect(url_for('app_home'))
+
+    if an_res.status_code not in [200, 202]:
+        # a non-auth issue happened; log it, but otherwise return OK. TODO - better notify the user
+        logger.error(f"Something went wrong when sending the Audio Notification, status code {an_res.status_code}")
+        logger.error(f"Error response body: {an_res.json()}")
+
+    # update the preferred volume 
+    if requested_msg['volume'] != current_user.preferred_volume:
+        current_user.set_preferred_volume(requested_msg['volume'])
+
+    # tell the browser all was fine
+    return "", 204
 
 @app.route('/privacy')
 def privacy():
