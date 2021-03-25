@@ -11,10 +11,12 @@ services:
     environment: 
       - LOG_LEVEL=DEBUG
       - GUNICORN_reload=True
-      - SB_CLIENT_ID=${SB_CLIENT_ID}
-      - SB_SECRET=${SB_SECRET}
-      - SB_API_VERSION=0
-      - SB_REDIRECT_URL=http://localhost:8000/auth
+      - BOSE_CLIENT_ID=${BOSE_CLIENT_ID}
+      - BOSE_SECRET=${BOSE_SECRET}
+      - BOSE_API_VERSION=0
+      - SONOS_CLIENT_ID=${SONOS_CLIENT_ID}
+      - SONOS_SECRET=${SONOS_SECRET}
+      - AUTH_REDIRECT_URL=http://localhost:8000/auth
       - SESSION_KEY=${SESSION_KEY}
       - REDIS_URL=redis://redis:6379
       - REDIS_ENCRYPTION_KEY=${REDIS_ENCRYPTION_KEY}
